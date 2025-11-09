@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 
-import '../../models/cart.dart';
 import '../../models/product.dart';
-import '../../providers/cart.dart';
-
-import '../../resources/font_manager.dart';
-import '../../resources/styles_manager.dart';
 import '../widgets/k_cached_image.dart';
 
 class SingleProductGridItem extends StatelessWidget {
@@ -22,43 +15,40 @@ class SingleProductGridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    CartProvider cartProvider = Provider.of<CartProvider>(context);
-    Uuid uuid = const Uuid();
+    // Determine the image URL. Use the first variant image, or the first feature image, or a placeholder.
+    String imageUrl = '';
+    if (product.variants.isNotEmpty && product.variants.first.imgUrls.isNotEmpty) {
+      imageUrl = product.variants.first.imgUrls.first;
+    } else if (product.featureImages.isNotEmpty) {
+      imageUrl = product.featureImages.first.url;
+    }
 
-    // toggle cart action
-    void toggleCartAction() {
-      if (cartProvider.isItemOnCart(product.prodId)) {
-        cartProvider.removeFromCart(product.prodId);
-      } else {
-        Cart cartItem = Cart(
-          cartId: uuid.v4(),
-          prodId: product.prodId,
-          prodName: product.productName,
-          prodImg: product.imgUrls[0],
-          vendorId: product.vendorId,
-          quantity: 1,
-          prodSize: product.sizesAvailable[0],
-          date: DateTime.now(),
-          price: product.price,
-        );
-
-        cartProvider.addToCart(cartItem);
-      }
+    // Determine the price. Use the first variant's price if available.
+    String priceString = '';
+    if (product.variants.isNotEmpty) {
+      priceString = '\${product.variants.first.price.toStringAsFixed(2)}';
     }
 
     return Stack(
       children: [
-        KCachedImage(
-          image: product.imgUrls[1],
-          height: 205,
-          width: double.infinity,
-        ),
+        // Use a placeholder if no image is available
+        imageUrl.isNotEmpty
+            ? KCachedImage(
+                image: imageUrl,
+                height: 205,
+                width: double.infinity,
+              )
+            : Container(
+                height: 205,
+                color: Colors.grey[200],
+                child: const Center(child: Icon(Icons.image_not_supported)),
+              ),
         Positioned(
           bottom: 3,
           left: 3,
           right: 3,
           child: Container(
-            height: size.height / 15,
+            padding: const EdgeInsets.all(8.0), // Add padding
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               gradient: LinearGradient(
@@ -66,8 +56,8 @@ class SingleProductGridItem extends StatelessWidget {
                 end: Alignment.topCenter,
                 stops: const [0, 1],
                 colors: [
-                  Colors.white,
-                  Colors.white.withOpacity(.03),
+                  Theme.of(context).cardColor,
+                  Theme.of(context).cardColor.withOpacity(0.03),
                 ],
               ),
             ),
@@ -83,35 +73,21 @@ class SingleProductGridItem extends StatelessWidget {
                   children: [
                     FittedBox(
                       child: Text(
-                        product.productName,
+                        product.name, // Use new field: name
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: getMediumStyle(
-                          color: Colors.black,
-                          fontSize: FontSize.s14,
-                        ),
+                        style: Theme.of(context).textTheme.titleSmall,
                       ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '\$${product.price}',
-                          style: getBoldStyle(
-                            color: Colors.black,
-                            fontSize: FontSize.s14,
-                          ),
-                        ),
-                        InkWell(
-                          onTap: () => toggleCartAction(),
-                          child: Icon(
-                            cartProvider.isItemOnCart(product.prodId)
-                                ? Icons.shopping_cart
-                                : Icons.shopping_cart_outlined,
-                          ),
-                        )
-                      ],
-                    )
+                    // The cart functionality is disabled here as it requires variant selection.
+                    // This should be handled in the product details screen.
+                    // if (priceString.isNotEmpty)
+                    //   Text(
+                    //     priceString,
+                    //     style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    //           fontWeight: FontWeight.bold,
+                    //         ),
+                    //   ),
                   ],
                 ),
               ),

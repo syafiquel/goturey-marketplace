@@ -6,19 +6,21 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:goturey_marketplace/constants/firebase_refs/collections.dart';
 import 'package:goturey_marketplace/views/widgets/kcool_alert.dart';
-import '../../../constants/color.dart';
+import 'package:goturey_marketplace/views/customer/widgets/main_bottom_nav.dart';
+import 'package:goturey_marketplace/views/widgets/main_app_bar.dart';
 import '../../../constants/enums/status.dart';
 import '../../../providers/order.dart';
 import '../../../resources/assets_manager.dart';
-import '../../../resources/font_manager.dart';
-import '../../../resources/styles_manager.dart';
 import '../../components/single_order_item.dart';
 import '../../widgets/are_you_sure_dialog.dart';
-import '../../widgets/kcool_alert.dart';  
 import '../main_screen.dart';
 import '../../../models/buyer.dart';
-import 'package:flutterwave_standard/flutterwave.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:math';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({Key? key}) : super(key: key);
@@ -38,6 +40,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
   bool isTestMode = true;
   Uuid uuid = const Uuid();
 
+  @override
+  void initState() {
+    super.initState();
+    fetchCustomerDetails();
+    fetchAPIKeys();
+  }
+
   // fetch Api keys
   Future<void> fetchAPIKeys() async {
     apiPublicKey = await storage.read(key: 'flutterwave_public_key');
@@ -50,36 +59,24 @@ class _OrdersScreenState extends State<OrdersScreen> {
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .get()
         .then((DocumentSnapshot data) {
-      setState(() {
-        buyer = Buyer.fromJson(data);
-      });
-
-      if (data['phone'].toString().isEmpty ||
-          data['address'].toString().isEmpty) {
+      if (mounted) {
         setState(() {
-          profileIncomplete = true;
-        });
-      }
-
-      if (data['phone'].toString().isEmpty) {
-        setState(() {
-          isPhoneNumberEmpty = true;
-        });
-      }
-
-      if (data['address'].toString().isEmpty) {
-        setState(() {
-          isAddressEmpty = true;
+          buyer = Buyer.fromJson(data);
+          profileIncomplete = (data['phone']?.toString().isEmpty ?? true) ||
+              (data['address']?.toString().isEmpty ?? true);
+          isPhoneNumberEmpty = data['phone']?.toString().isEmpty ?? true;
+          isAddressEmpty = data['address']?.toString().isEmpty ?? true;
         });
       }
     });
   }
 
-  @override
-  void initState() {
-    super.initState();
-    fetchCustomerDetails();
-    fetchAPIKeys();
+  // Generate unique 10-character payment reference
+  String generatePaymentReference() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random();
+    return String.fromCharCodes(Iterable.generate(
+        10, (_) => chars.codeUnitAt(random.nextInt(chars.length))));
   }
 
   // pop out
@@ -92,33 +89,52 @@ class _OrdersScreenState extends State<OrdersScreen> {
     kCoolAlert(
       message: message,
       context: context,
-      alert:
-          status == Status.error ? CoolAlertType.error : CoolAlertType.success,
-      action: (_) => popOut,
+      alert: status == Status.error ? CoolAlertType.error : CoolAlertType.success,
+      action: (_) => popOut(),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final orderData = Provider.of<OrderProvider>(context);
+  // Create pre-authorized order in Firebase (before payment)
+  Future<String> createPreAuthorizedOrder(String paymentReference) async {
+    final orderData = Provider.of<OrderProvider>(context, listen: false);
+    
+    // Prepare all products from cart
+    final allProducts = orderData.orders.expand((order) => order.products).map((item) {
+      return {
+        'vendorId': item.vendorId,
+        'prodId': item.prodId,
+        'prodName': item.prodName,
+        'prodPrice': item.price,
+        'prodQuantity': item.quantity,
+      };
+    }).toList();
 
-    // remove cart items
-    void removeAllOrderItems() {
-      orderData.clearOrder();
-      popOut();
-    }
+    // Generate unique order ID
+    var orderId = uuid.v4();
 
-    // remove all cart items dialog
-    void removeAllOrderItemsDialog() {
-      areYouSureDialog(
-        title: 'Remove all cart items',
-        content: 'Are you sure you want to remove all order items',
-        context: context,
-        action: removeAllOrderItems,
-      );
-    }
+    // Create pre-authorized order document
+    final docRef = await FirebaseCollections.ordersCollection.add({
+      'orderId': orderId,
+      'customerId': buyer.customerId,
+      'customerEmail': buyer.email,
+      'customerName': buyer.fullname,
+      'products': allProducts,
+      'totalAmount': orderData.getTotal,
+      'currency': 'MYR',
+      'orderDate': Timestamp.now(),
+      'paymentReference': paymentReference,
+      'paymentStatus': 'pending', // Pre-authorized state
+      'isDelivered': false,
+      'isApproved': false, // Will be set to true after payment confirmation
+      'chipInPurchaseId': null, // Will be updated by callback
+      'createdAt': Timestamp.now(),
+      'updatedAt': Timestamp.now(),
+    });
 
-    // navigate to profile
+    return docRef.id;
+  }
+
+   // navigate to profile
     void navigateToProfile() {
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -127,243 +143,447 @@ class _OrdersScreenState extends State<OrdersScreen> {
       );
     }
 
-    // submit individual order to firebase
-    Future<void> submitOrderToFirebase() async {
-      for (var order in orderData.orders) {
-        for (var item in order.products) {
-          var id = uuid.v4();
-          FirebaseCollections.ordersCollection.doc(id).set({
-            'orderId': id,
-            'vendorId': item.vendorId,
-            'customerId':buyer.customerId,
-            'prodId': item.prodId,
-            'prodName': item.prodName,
-            'prodImg': item.prodImg,
-            'prodSize': item.prodSize,
-            'prodPrice':item.price,
-            'prodQuantity': item.quantity,
-            'date': item.date,
-            'isDelivered': false,
-            'isApproved':false,
-          });
+  // Handle Chip In Payment
+  Future<void> handleChipInPayment() async {
+    final orderData = Provider.of<OrderProvider>(context, listen: false);
+
+    // Check if cart is empty
+    if (orderData.orders.isEmpty) {
+      showLoading('Your cart is empty. Please add items before checkout.', Status.error);
+      return;
+    }
+
+    // Check profile completeness
+    // if (profileIncomplete) {
+    //   kCoolAlert(
+    //     message: isAddressEmpty && isPhoneNumberEmpty
+    //         ? 'Your profile is incomplete! Please update your address and phone number.'
+    //         : isPhoneNumberEmpty
+    //             ? 'Your profile is incomplete! Please update your phone number.'
+    //             : 'Your profile is incomplete! Please update your address.',
+    //     context: context,
+    //     alert: CoolAlertType.error,
+    //     action: (_) => navigateToProfile(),
+    //     confirmBtnText: 'Update Profile',
+    //   );
+    //   return;
+    // }
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Text('Creating order...', style: Theme.of(context).textTheme.bodyMedium),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      // 1. Generate unique payment reference
+      final paymentReference = generatePaymentReference();
+      
+      // 2. Create pre-authorized order in Firebase
+      final orderId = await createPreAuthorizedOrder(paymentReference);
+
+      // 3. Prepare products payload for Chip In
+      final productsPayload = orderData.orders.expand((order) => order.products).map((item) {
+        return {
+          'name': item.prodName,
+          'price': (item.price * 100).toInt(), // Price in cents
+          'quantity': item.quantity
+        };
+      }).toList();
+
+      // 4. Call PHP backend to create Chip In purchase
+      final backendUrl = Uri.parse('https://api.goturey.com/create_payment.php');
+      
+      final response = await http.post(
+        backendUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'amount': (orderData.getTotal * 100).toInt(), // Total amount in cents
+          'email': buyer.email,
+          'fullName': buyer.fullname,
+          'products': productsPayload,
+          'customerId': buyer.customerId,
+          'paymentReference': orderId, // Include payment reference
+        }),
+      );
+
+      Navigator.of(context).pop(); // Close loading indicator
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        final paymentUrl = responseData['payment_url'] as String?;
+
+        if (paymentUrl == null) {
+          showLoading('Failed to get payment URL. Please try again.', Status.error);
+          return;
         }
+
+        // 5. Launch payment flow
+        if (kIsWeb) {
+          // For web platform: Open payment URL in new tab
+          final Uri paymentUri = Uri.parse(paymentUrl);
+          if (await canLaunchUrl(paymentUri)) {
+            await launchUrl(
+              paymentUri,
+              mode: LaunchMode.externalApplication,
+            );
+            
+            // Show completion dialog with order tracking
+            _showPaymentCompletionDialog(orderId, paymentReference);
+          } else {
+            showLoading('Could not open payment page. Please try again.', Status.error);
+          }
+        } else {
+          // For mobile platforms: Use WebView or external browser
+          final Uri paymentUri = Uri.parse(paymentUrl);
+          await launchUrl(paymentUri, mode: LaunchMode.externalApplication);
+          _showPaymentCompletionDialog(orderId, paymentReference);
+        }
+
+      } else {
+        final errorData = json.decode(response.body);
+        final errorMessage = errorData['message'] ?? 'Failed to create payment.';
+        showLoading('Error: $errorMessage', Status.error);
       }
+
+    } catch (e) {
+      Navigator.of(context).pop(); // Ensure loading indicator is closed
+      showLoading('Network error occurred. Please check your connection and try again.', Status.error);
+      print('Payment error: $e');
+    }
+  }
+
+  // Show payment completion dialog with order tracking
+  void _showPaymentCompletionDialog(String orderId, String paymentReference) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Row(
+          children: [
+            Icon(Icons.payment, color: Colors.blue.shade600),
+            const SizedBox(width: 12),
+            const Text('Payment Status'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Please complete your payment in the opened tab, then return here to confirm.',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Order ID: $orderId', 
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text('Reference: $paymentReference',
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              showLoading('Payment was cancelled. Your order is saved and can be completed later.', Status.error);
+            },
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              
+              // Show success message
+              showLoading(
+                "Thank you! Your order has been processed. You will receive a confirmation email shortly.", 
+                Status.success
+              );
+              
+              // Clear the cart
+              Provider.of<OrderProvider>(context, listen: false).clearOrder();
+              
+              // Navigate to main screen
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const CustomerMainScreen(index: 0),
+                ),
+              );
+            },
+            child: const Text('Payment Completed'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final orderData = Provider.of<OrderProvider>(context);
+
+    // remove all order items dialog
+    void removeAllOrderItemsDialog() {
+      areYouSureDialog(
+        title: 'Clear All Orders',
+        content: 'Are you sure you want to remove all items from your cart?',
+        context: context,
+        action: () {
+          orderData.clearOrder();
+          Navigator.of(context).pop();
+        },
+      );
     }
 
     // order now button
     Future<void> orderNow() async {
-      if (profileIncomplete) {
-        kCoolAlert(
-          message: isAddressEmpty && isPhoneNumberEmpty
-              ? 'Your profile is complete! Update your address and phone number'
-              : isPhoneNumberEmpty
-                  ? 'Your profile is complete! Update your phone number'
-                  : 'Your profile is complete! Update your address',
-          context: context,
-          alert: CoolAlertType.error,
-          action: (_) => navigateToProfile,
-          confirmBtnText: 'Update Profile',
-        );
-      }
-
-      // handle payment
-      final Customer customer =
-          Customer(email: buyer.email, phoneNumber: buyer.phone);
-
-      final Flutterwave flutterwave = Flutterwave(
-        publicKey: apiPublicKey!,
-        currency: 'USD',
-        redirectUrl: 'https://github.com/Atuoha/goturey_marketplace',
-        txRef: uuid.v1(),
-        amount: orderData.getTotal.toString(),
-        customer: customer,
-        paymentOptions: "card, payattitude, barter, bank transfer, ussd",
-        customization: Customization(
-          title: "Make Payment",
-          description: 'Make payment for the order items',
-        ),
-        isTestMode: isTestMode,
-      );
-      final ChargeResponse response = await flutterwave.charge(context);
-      if (response.success == true) {
-        showLoading("You have successfully placed your order", Status.success);
-        submitOrderToFirebase(); // upload to firebase
-        removeAllOrderItems(); // remove order
-      } else {
-        showLoading(
-          'Ops! Payment was not successful',
-          Status.error,
-        );
-      }
+      await handleChipInPayment();
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.white,
-        shadowColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Orders',
-        ),
-        leading: Builder(
-          builder: (context) {
-            return GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              child: const Icon(Icons.chevron_left, color: iconColor),
-            );
-          },
-        ),
+      appBar: MainAppBar(
+        title: 'Your Orders',
         actions: [
-          orderData.orders.isEmpty
-              ? const SizedBox.shrink()
-              : GestureDetector(
-                  onTap: () => removeAllOrderItemsDialog(),
-                  child: const Icon(
-                    Icons.delete_forever,
-                    color: iconColor,
-                    size: 30,
-                  ),
-                ),
-          const SizedBox(width: 18),
+          if (orderData.orders.isNotEmpty)
+            IconButton(
+              onPressed: removeAllOrderItemsDialog,
+              icon: const Icon(Icons.delete_sweep_outlined, color: Colors.grey),
+            ),
         ],
       ),
+      backgroundColor: Colors.grey.shade50,
       body: orderData.orders.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(AssetManager.empty),
-                  const SizedBox(height: 20),
-                  const Text('Ops! Order is empty'),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentColor,
-                    ),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const CustomerMainScreen(index: 0),
-                      ),
-                    ),
-                    child: const Text('Start shopping'),
-                  )
+          ? _buildEmptyOrders()
+          : _buildOrdersList(orderData),
+      bottomNavigationBar: const MainBottomNav(
+        currentIndex: 3,
+        isProductDetailsPage: false,
+      ),
+      bottomSheet: orderData.orders.isNotEmpty
+          ? _buildCheckoutSection(orderData, orderNow)
+          : null,
+    );
+  }
+
+  // Widget for displaying the list of orders
+  Widget _buildOrdersList(OrderProvider orderData) {
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 120.0),
+      itemCount: orderData.orders.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final order = orderData.orders[index];
+        return SingleOrderItem(
+          id: order.id,
+          totalAmount: order.totalAmount,
+          date: order.orderDate,
+          orders: order,
+        );
+      },
+    );
+  }
+
+  // Widget for the empty orders state
+  Widget _buildEmptyOrders() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.shade200,
+                    blurRadius: 8.0,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
-            )
-          : Column(
-            children: [
-              Expanded(
-                flex: 5,
-                child: ListView.builder(
-                  itemCount: orderData.orders.length,
-                  itemBuilder: (context, index) => Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: SingleOrderItem(
-                      id: orderData.orders[index].id,
-                      totalAmount: orderData.orders[index].totalAmount,
-                      date: orderData.orders[index].orderDate,
-                      orders: orderData.orders[index],
+              child: Column(
+                children: [
+                  Image.asset(AssetManager.empty, height: 120),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Your cart is empty',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Add some amazing items to get started with your order.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () => Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const CustomerMainScreen(index: 0),
+                        ),
+                      ),
+                      child: const Text('Start Shopping'),
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget for the checkout section
+  Widget _buildCheckoutSection(OrderProvider orderData, VoidCallback orderNow) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade300,
+            blurRadius: 8.0,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total Price',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'RM ${orderData.getTotal.toStringAsFixed(2)}',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Colors.orange.shade600,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.shopping_bag_outlined, size: 16, color: Colors.blueAccent),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${orderData.orders.length} ${orderData.orders.length > 1 ? "items" : "item"}',
+                          style: const TextStyle(
+                            color: Colors.blueAccent,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    elevation: 2,
+                  ),
+                  onPressed: orderNow,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.credit_card, size: 20),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Proceed to Payment',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
-      bottomSheet: orderData.orders.isNotEmpty
-          ? Container(
-              color: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18.0,
-                  vertical: 10,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total Price',
-                          style: getRegularStyle(
-                            color: greyFontColor,
-                            fontWeight: FontWeight.w500,
-                            fontSize: FontSize.s14,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '\$${orderData.getTotal.toStringAsFixed(2)}',
-                          style: getMediumStyle(
-                            color: accentColor,
-                            fontSize: FontSize.s25,
-                          ),
-                        )
-                      ],
-                    ),
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Container(
-                          height: 50,
-                          width: 80,
-                          decoration: BoxDecoration(
-                            color: accentColor.withOpacity(0.3),
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(5),
-                              topLeft: Radius.circular(5),
-                            ),
-                          ),
-                          child: Center(
-                            child: Wrap(
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                const Icon(Icons.shopping_bag_outlined,
-                                    color: Colors.white),
-                                const SizedBox(width: 15),
-                                Text(
-                                  orderData.orders.length.toString(),
-                                  style: getRegularStyle(
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => orderNow(),
-                          child: Container(
-                            height: 50,
-                            width: 120,
-                            decoration: const BoxDecoration(
-                              color: accentColor,
-                              borderRadius: BorderRadius.only(
-                                bottomRight: Radius.circular(5),
-                                topRight: Radius.circular(5),
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Buy Now',
-                                style: getMediumStyle(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                      ],
-                    )
-                  ],
-                ),
-              ),
-            )
-          : const SizedBox.shrink(),
+        ),
+      ),
     );
   }
 }

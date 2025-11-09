@@ -42,52 +42,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     // orders
-    FirebaseCollections.ordersCollection
+    QuerySnapshot orderData = await FirebaseCollections.ordersCollection
         .where('vendorId', isEqualTo: userId)
-        .get()
-        .then(
-          (QuerySnapshot data) => {
-            setState(() {
-              orders = data.docs.length;
-            }),
+        .get();
 
-            // checkouts
-            for (var doc in data.docs)
-              {
-                if (!doc['isDelivered'])
-                  {
-                    setState(() {
-                      availableFunds += doc['prodPrice'] * doc['prodQuantity'];
-                    })
-                  }
-              }
-          },
-        );
+    double calculatedAvailableFunds = 0.0;
+    for (var doc in orderData.docs) {
+      if (!doc['isDelivered']) {
+        calculatedAvailableFunds += doc['prodPrice'] * doc['prodQuantity'];
+      }
+    }
+
+    setState(() {
+      orders = orderData.docs.length;
+      availableFunds = calculatedAvailableFunds;
+    });
+
 
     // products
-    FirebaseCollections.productsCollection
+    QuerySnapshot productData = await FirebaseCollections.productsCollection
         .where('vendorId', isEqualTo: userId)
-        .get()
-        .then(
-          (QuerySnapshot data) => {
-            setState(() {
-              products = data.docs.length;
-            }),
-          },
-        );
+        .get();
+
+    setState(() {
+      products = productData.docs.length;
+    });
   }
 
   // fetch vendor details
   Future<void> fetchVendor() async {
-    await FirebaseCollections.vendorsCollection
+    DocumentSnapshot doc = await FirebaseCollections.vendorsCollection
         .doc(userId)
-        .get()
-        .then((DocumentSnapshot doc) => {
-              setState(() {
-                vendor = Vendor.fromDoc(doc);
-                earnings = Vendor.fromDoc(doc).balanceAvailable;
-              })
-            });
+        .get();
+
+    setState(() {
+      vendor = Vendor.fromDoc(doc);
+      earnings = Vendor.fromDoc(doc).balanceAvailable;
+    });
   }
 
   @override
@@ -116,9 +107,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         )
         .then(
-          (value) => setState(
-            () {},
-          ),
+          (value) {
+            fetchVendor();
+            fetchData();
+          },
         );
   }
 
@@ -127,44 +119,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     var id = const Uuid().v4();
     double totalAmount = 0.0;
 
-
-
-    await FirebaseCollections.ordersCollection
+    // Fetch orders
+    QuerySnapshot orderData = await FirebaseCollections.ordersCollection
         .where('isDelivered', isEqualTo: false)
-        .get()
-        .then((QuerySnapshot data) {
-      for (var doc in data.docs) {
-        // update totalAmount
-        totalAmount += doc['prodPrice'] * doc['prodQuantity'];
+        .get();
 
-        FirebaseCollections.ordersCollection.doc(doc['orderId']).update({
-          'isDelivered': true,
-        });
-      }
-
-      // updating vendor's balance
-      FirebaseCollections.vendorsCollection
-          .doc(userId)
-          .get()
-          .then((DocumentSnapshot data) {
-        FirebaseCollections.vendorsCollection.doc(userId).update({
-          'balanceAvailable': data['balanceAvailable'] + totalAmount,
-        });
+    // Calculate total amount and update orders
+    for (var doc in orderData.docs) {
+      totalAmount += doc['prodPrice'] * doc['prodQuantity'];
+      await FirebaseCollections.ordersCollection.doc(doc['orderId']).update({
+        'isDelivered': true,
       });
+    }
 
-       FirebaseCollections.cashOutCollection.doc(id).set({
-        'id': id,
-        'vendorId': userId,
-        'amount': totalAmount,
-        'status': false,
-        'date': DateTime.now(),
-      });
-
+    // Update vendor's balance
+    DocumentSnapshot vendorDoc = await FirebaseCollections.vendorsCollection
+        .doc(userId)
+        .get();
+    double currentBalance = (vendorDoc.data() as Map<String, dynamic>)['balanceAvailable'] ?? 0.0;
+    await FirebaseCollections.vendorsCollection.doc(userId).update({
+      'balanceAvailable': currentBalance + totalAmount,
     });
 
-    Future.delayed(const Duration(seconds: 1));
-    fetchData();
-    Navigator.of(cxt).pop();
+    // Record cash out transaction
+    await FirebaseCollections.cashOutCollection.doc(id).set({
+      'id': id,
+      'vendorId': userId,
+      'amount': totalAmount,
+      'status': false,
+      'date': DateTime.now(),
+    });
+
+    // Refresh data and pop the dialog
+    await Future.delayed(const Duration(seconds: 1)); // Added await
+    fetchData(); // No need for await here, as it's just refreshing UI
+    Navigator.of(context).pop(); // Changed cxt to context
   }
 
   // cash out dialog
@@ -177,8 +166,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // get context
-  get cxt => context;
+
 
   // logout dialog
   void logoutDialog() {
@@ -193,7 +181,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // logout
   Future<void> logout() async {
     await auth.signOut();
-    Navigator.of(cxt).pushNamed(RouteManager.accountType);
+    Navigator.of(context).pushNamed(RouteManager.customerAuthScreen);
   }
 
   @override
@@ -201,89 +189,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Size size = MediaQuery.sizeOf(context);
 
     return Scaffold(
-      body: Container(
-        constraints: const BoxConstraints.expand(),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [accentColor, boxBg],
-            begin: Alignment.topCenter,
-            end: Alignment.center,
-            stops: [1, 1],
-          ),
-        ),
-        child: Padding(
-          padding: EdgeInsets.only(
-            top: MediaQuery.paddingOf(context).top,
-            left: 18,
-            right: 18,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              KCachedImage(
-                image: vendor.storeImgUrl,
-                isCircleAvatar: true,
-                radius: 60,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                vendor.storeName,
-                style: getMediumStyle(
-                  color: Colors.white,
-                  fontSize: FontSize.s30,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Row(
-                children: [
-                  Text(
-                    vendor.email,
-                    style: getRegularStyle(
-                      color: Colors.white,
-                      fontSize: FontSize.s14,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            expandedHeight: 200, // Adjust as needed
+            backgroundColor: accentColor,
+            flexibleSpace: LayoutBuilder(
+              builder: (context, constraints) {
+                return FlexibleSpaceBar(
+                  titlePadding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 10,
+                  ),
+                  title: AnimatedOpacity(
+                    opacity: constraints.biggest.height <= 120 ? 1 : 0,
+                    duration: const Duration(
+                      milliseconds: 300,
+                    ),
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        KCachedImage(
+                          image: vendor.storeImgUrl,
+                          isCircleAvatar: true,
+                          radius: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          vendor.storeName,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Text(
-                    '${vendor.city} ${vendor.state} ${reversedWord(vendor.country)}',
-                    style: getRegularStyle(
-                      color: Colors.white,
-                      fontSize: FontSize.s13,
+                  background: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          accentColor,
+                          boxBg,
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.center,
+                        stops: [1, 1],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 5),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Chip(
-                    label: FittedBox(
-                      child: Text(
-                          'Available Funds: \$${availableFunds.toStringAsFixed(2)}'),
-                    ),
-                    avatar: const Icon(Icons.monetization_on),
-                    backgroundColor: Colors.white,
-                  ),
-                  Chip(
-                    label: Text('Orders: $orders'),
-                    avatar: const Icon(Icons.shopping_cart_checkout),
-                    backgroundColor: Colors.white,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Container(
-                height: size.height / 2,
-                width: size.width / 1,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: SingleChildScrollView(
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        KCachedImage(
+                          image: vendor.storeImgUrl,
+                          isCircleAvatar: true,
+                          radius: 60,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          vendor.storeName,
+                          style: getMediumStyle(
+                            color: Colors.white,
+                            fontSize: FontSize.s30,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              vendor.email,
+                              style: getRegularStyle(
+                                color: Colors.white,
+                                fontSize: FontSize.s14,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              '${vendor.city} ${vendor.state} ${reversedWord(vendor.country)}',
+                              style: getRegularStyle(
+                                color: Colors.white,
+                                fontSize: FontSize.s13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildProfileStat(
+                          'Available Funds', '\$${availableFunds.toStringAsFixed(2)}', Icons.monetization_on),
+                      _buildProfileStat(
+                          'Orders', orders.toString(), Icons.shopping_cart_checkout),
+                      _buildProfileStat(
+                          'Products', products.toString(), Icons.shopping_bag),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: ListView(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.zero,
                       children: [
                         KListTile(
                           title: 'Edit Profile',
@@ -316,6 +343,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Divider(thickness: 1),
                         ),
                         KListTile(
+                          title: 'Cash out Now',
+                          icon: Icons.wallet,
+                          onTapHandler: cashOutDialog,
+                          showSubtitle: false,
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Divider(thickness: 1),
+                        ),
+                        KListTile(
                           title: 'Logout',
                           icon: Icons.logout,
                           onTapHandler: logoutDialog,
@@ -324,99 +361,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                ),
-              )
-            ],
-          ),
-        ),
-      ),
-      bottomSheet: Container(
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 18.0,
-            vertical: 10,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Total Earnings',
-                    style: getRegularStyle(
-                      color: greyFontColor,
-                      fontWeight: FontWeight.w500,
-                      fontSize: FontSize.s14,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    '\$${earnings.toStringAsFixed(2)}',
-                    style: getMediumStyle(
-                      color: accentColor,
-                      fontSize: FontSize.s25,
-                    ),
-                  )
                 ],
               ),
-              Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Container(
-                    height: 50,
-                    width: 80,
-                    decoration: BoxDecoration(
-                      color: accentColor.withOpacity(0.3),
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(5),
-                        topLeft: Radius.circular(5),
-                      ),
-                    ),
-                    child: const Center(
-                      child: Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.wallet,
-                            color: Colors.white,
-                          ),
-                          SizedBox(width: 15),
-
-                        ],
-                      ),
-                    ),
-                  ),
-              GestureDetector(
-                    onTap: () => cashOutDialog(),
-                    child: Container(
-                      height: 50,
-                      width: 120,
-                      decoration: const BoxDecoration(
-                        color: accentColor,
-                        borderRadius: BorderRadius.only(
-                          bottomRight: Radius.circular(5),
-                          topRight: Radius.circular(5),
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Cash out Now',
-                          style: getMediumStyle(
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                ],
-              )
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
+
+  Widget _buildProfileStat(String title, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, color: accentColor, size: 30),
+        const SizedBox(height: 5),
+        Text(
+          title,
+          style: getRegularStyle(color: Colors.black, fontSize: FontSize.s14),
+        ),
+        Text(
+          value,
+          style: getBoldStyle(color: Colors.black, fontSize: FontSize.s18),
+        ),
+      ],
+    );
+  }
 }
+

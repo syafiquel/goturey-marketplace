@@ -1,10 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:goturey_marketplace/constants/enums/quantity_operation.dart';
+import 'package:goturey_marketplace/helpers/shared_prefs.dart' as shared_prefs;
 
 import '../models/cart.dart';
 
 class CartProvider extends ChangeNotifier {
-  final Map<String, Cart> _cartItems = {};
+  Map<String, Cart> _cartItems = {};
+
+  CartProvider() {
+    loadCartFromPrefs();
+  }
 
   Map<String, Cart> get getCartItems => {..._cartItems};
 
@@ -28,38 +35,34 @@ class CartProvider extends ChangeNotifier {
   // get product quantity on cart
   int getProductQuantityOnCart(String prodId) {
     int quantity = 0;
-    _cartItems.forEach((key, value) {
-      if (key == prodId) {
-        quantity += value.quantity;
-      }
-    });
+    if (_cartItems.containsKey(prodId)) {
+      quantity = _cartItems[prodId]!.quantity;
+    }
 
     return quantity;
   }
 
   // increase quantity
   void increaseQuantity(String prodId) {
-    _cartItems.forEach((key, value) {
-      if (key == prodId) {
-        value.increaseQuantity();
-      }
-    });
-    notifyListeners();
+    if (_cartItems.containsKey(prodId)) {
+      _cartItems[prodId]!.increaseQuantity();
+      _saveCartToPrefs();
+      notifyListeners();
+    }
   }
 
   // decrease quantity
   void decreaseQuantity(String prodId) {
-    _cartItems.forEach((key, value) {
-      if (key == prodId) {
-        if (value.quantity > 1) {
-          value.decreaseQuantity();
-        }
+    if (_cartItems.containsKey(prodId)) {
+      if (_cartItems[prodId]!.quantity > 1) {
+        _cartItems[prodId]!.decreaseQuantity();
+      } else {
+        _cartItems.remove(prodId);
       }
-    });
-    notifyListeners();
+      _saveCartToPrefs();
+      notifyListeners();
+    }
   }
-
-
 
   // increment or decrement product in cart | alternative method - (NOT CURRENTLY USED)
   void toggleQuantity(QuantityOperation operation, String cartId) {
@@ -100,6 +103,7 @@ class CartProvider extends ChangeNotifier {
         );
         break;
     }
+    _saveCartToPrefs();
     notifyListeners();
   }
 
@@ -108,35 +112,46 @@ class CartProvider extends ChangeNotifier {
 
   void addToCart(Cart cartItem) {
     if (isItemOnCart(cartItem.prodId)) {
-      _cartItems.update(
-        cartItem.cartId,
-        (existingCartItem) => Cart(
-          cartId: existingCartItem.cartId,
-          prodId: existingCartItem.prodId,
-          prodName: existingCartItem.prodName,
-          prodImg: existingCartItem.prodImg,
-          vendorId: existingCartItem.vendorId,
-          quantity: existingCartItem.quantity + 1,
-          prodSize: existingCartItem.prodSize,
-          price: existingCartItem.price,
-          date: existingCartItem.date,
-        ),
-      );
+      increaseQuantity(cartItem.prodId);
     } else {
       _cartItems.putIfAbsent(cartItem.prodId, () => cartItem);
     }
+    _saveCartToPrefs();
     notifyListeners();
   }
 
   // removing item from cart
   void removeFromCart(String prodId) {
     _cartItems.remove(prodId);
+    _saveCartToPrefs();
     notifyListeners();
   }
 
   // clear cart
   void clearCart() {
     _cartItems.clear();
+    _saveCartToPrefs();
     notifyListeners();
+  }
+
+  void _saveCartToPrefs() {
+    final cartJson = json.encode(
+      _cartItems.map((key, value) => MapEntry(key, value.toJson())),
+    );
+    shared_prefs.saveCart(cartJson);
+  }
+
+  void loadCartFromPrefs() async {
+    final cartJson = await shared_prefs.loadCart();
+    if (cartJson != null) {
+      final Map<String, dynamic> decodedCart = json.decode(cartJson);
+      _cartItems = decodedCart.map(
+        (key, value) => MapEntry(
+          key,
+          Cart.fromJson(value),
+        ),
+      );
+      notifyListeners();
+    }
   }
 }

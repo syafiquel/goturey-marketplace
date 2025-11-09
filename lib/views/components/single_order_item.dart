@@ -2,12 +2,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:goturey_marketplace/providers/order.dart';
-import '../../constants/enums/yes_no.dart';
-import '../../models/order.dart';
-import '../../resources/font_manager.dart';
-import '../../resources/styles_manager.dart';
 import 'package:intl/intl.dart';
 
+import '../../constants/enums/yes_no.dart';
+import '../../models/order.dart';
 import '../widgets/k_cached_image.dart';
 import '../widgets/text_action.dart';
 
@@ -32,26 +30,31 @@ class SingleOrderItem extends StatefulWidget {
 class _SingleOrderItemState extends State<SingleOrderItem> {
   var _isExpanded = false;
 
+  // Helper method to format date consistently
+  String _formatDate(DateTime date) {
+    return DateFormat('dd MMM yyyy, hh:mma').format(date);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dismissible(
+      key: ValueKey(widget.id),
+      direction: DismissDirection.endToStart,
       confirmDismiss: (direction) => showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          elevation: 3,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0),
+          ),
           title: Text(
-            'Are you sure?',
-            style: getMediumStyle(
-              color: Colors.black,
-              fontSize: FontSize.s18,
+            'Confirm Deletion',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
           ),
           content: Text(
-            'Do you want to remove items with \$${widget.totalAmount} from order?',
-            style: getRegularStyle(
-              color: Colors.black,
-              fontSize: FontSize.s14,
-            ),
+            'Are you sure you want to remove this order from your history?',
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
           actions: [
             textAction('Yes', YesNo.yes, context),
@@ -59,45 +62,70 @@ class _SingleOrderItemState extends State<SingleOrderItem> {
           ],
         ),
       ),
-      key: ValueKey(widget.id),
       onDismissed: (direction) =>
           Provider.of<OrderProvider>(context, listen: false)
               .removeOrder(widget.id),
-      direction: DismissDirection.endToStart,
       background: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.red,
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(12.0),
         ),
         alignment: Alignment.centerRight,
-        child: const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Icon(
-            Icons.delete,
-            size: 30,
-            color: Colors.white,
-          ),
+        padding: const EdgeInsets.only(right: 20.0),
+        child: const Icon(
+          Icons.delete_sweep_outlined,
+          color: Colors.white,
+          size: 28,
         ),
       ),
-      child: Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.0),
+          border: Border.all(color: Colors.grey.shade300, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.shade100,
+              blurRadius: 4.0,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           children: [
             ListTile(
-              title: Text('\$${widget.totalAmount.toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 20)),
-              subtitle: Text(
-                DateFormat(' dd MMM yyy hh:mma').format(widget.date),
+              contentPadding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 0),
+              leading: Container(
+                padding: const EdgeInsets.all(10.0),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Icon(
+                  Icons.shopping_bag_outlined,
+                  color: Colors.blue.shade700,
+                  size: 24,
+                ),
               ),
-              leading: const Icon(Icons.shopping_bag),
+              title: Text(
+                'RM ${widget.totalAmount.toStringAsFixed(2)}',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              subtitle: Text(
+                _formatDate(widget.date),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+              ),
               trailing: IconButton(
                 icon: Icon(
                   _isExpanded
                       ? Icons.keyboard_arrow_up
                       : Icons.keyboard_arrow_down,
+                  color: Colors.grey.shade600,
                 ),
                 onPressed: () => setState(() {
                   _isExpanded = !_isExpanded;
@@ -105,38 +133,58 @@ class _SingleOrderItemState extends State<SingleOrderItem> {
               ),
             ),
             if (_isExpanded)
-              // ignore: sized_box_for_whitespace
               Container(
                 height: min(
-                  widget.orders.products.length * 20.0 + 100,
-                  180,
+                  widget.orders.products.length * 70.0,
+                  180.0,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0,
-                    vertical: 3,
-                  ),
-                  child: ListView.builder(
-                    itemCount: widget.orders.products.length,
-                    itemBuilder: (context, index) => ListTile(
-                      leading:
-                      KCachedImage(
-                        image: widget.orders.products[index].prodImg,
-                        isCircleAvatar:true,
-                        radius:40,
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  itemCount: widget.orders.products.length,
+                  itemBuilder: (context, index) {
+                    final product = widget.orders.products[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        children: [
+                          KCachedImage(
+                            image: product.prodImg,
+                            isCircleAvatar: true,
+                            radius: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.prodName,
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Quantity: ${product.quantity}',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'RM ${product.price.toStringAsFixed(2)}',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-
-                      title: Text(
-                        widget.orders.products[index].prodName,
-                      ),
-                      subtitle: Text(
-                        'Quantity: ${widget.orders.products[index].quantity}',
-                      ),
-                      trailing: Text(
-                        '\$${widget.orders.products[index].price}',
-                      ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
           ],

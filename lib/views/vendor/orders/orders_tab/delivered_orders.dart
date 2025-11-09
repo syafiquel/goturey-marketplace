@@ -323,92 +323,107 @@ class _DeliveredOrdersState extends State<DeliveredOrders> {
           }
 
           return Container(
-            color: Colors.white,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 18.0,
-                vertical: 10,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Total Price',
-                        style: getRegularStyle(
-                          color: greyFontColor,
-                          fontWeight: FontWeight.w500,
-                          fontSize: FontSize.s14,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.shade300,
+                  blurRadius: 8.0,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Total Price',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '\$${totalAmount.toStringAsFixed(2)}',
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    color: Colors.orange.shade600,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            )
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        '\$${totalAmount.toStringAsFixed(2)}',
-                        style: getMediumStyle(
-                          color: accentColor,
-                          fontSize: FontSize.s25,
-                        ),
-                      )
-                    ],
-                  ),
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Container(
-                        height: 50,
-                        width: 80,
-                        decoration: BoxDecoration(
-                          color: accentColor.withOpacity(0.3),
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(5),
-                            topLeft: Radius.circular(5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.blueAccent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
                           ),
-                        ),
-                        child: Center(
-                          child: Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.center,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.shopping_bag_outlined,
-                                  color: Colors.white),
-                              const SizedBox(width: 15),
+                              Icon(Icons.shopping_bag_outlined, size: 16, color: Colors.blueAccent),
+                              const SizedBox(width: 6),
                               Text(
-                                checkedOutList.toString(),
-                                style: getRegularStyle(
-                                  color: Colors.white,
+                                '${checkedOutList} ${checkedOutList > 1 ? "items" : "item"}',
+                                style: const TextStyle(
+                                  color: Colors.blueAccent,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                      GestureDetector(
-                        onTap: () => deliverAllProductsDialog(),
-                        child: Container(
-                          height: 50,
-                          width: 120,
-                          decoration: const BoxDecoration(
-                            color: accentColor,
-                            borderRadius: BorderRadius.only(
-                              bottomRight: Radius.circular(5),
-                              topRight: Radius.circular(5),
-                            ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
                           ),
-                          child: Center(
-                            child: Text(
-                              'Cancel Delivery',
-                              style: getMediumStyle(
-                                color: Colors.white,
+                          elevation: 2,
+                        ),
+                        onPressed: () => deliverAllProductsDialog(),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.cancel, size: 20),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Cancel All Deliveries',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                      )
-                    ],
-                  )
-                ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );

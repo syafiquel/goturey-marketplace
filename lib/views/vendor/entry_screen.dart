@@ -35,7 +35,7 @@ class _VendorEntryScreenState extends State<VendorEntryScreen> {
   logout() async {
     await authController.signOut();
     Navigator.of(ctx)
-        .pushNamedAndRemoveUntil(RouteManager.accountType, (route) => false);
+        .pushNamedAndRemoveUntil(RouteManager.customerAuthScreen, (route) => false);
   }
 
   // logout dialog
@@ -79,7 +79,8 @@ class _VendorEntryScreenState extends State<VendorEntryScreen> {
           }
 
           Vendor vendor =
-              Vendor.fromJson(snapshot.data!.data() as Map<String, dynamic>);
+              Vendor.fromJson(snapshot.data!.data()
+               as Map<String, dynamic>);
 
           if (vendor.isApproved) {
             // account is approved

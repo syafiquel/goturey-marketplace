@@ -8,24 +8,12 @@ class ProductController {
   final firebase = FirebaseFirestore.instance;
 
   Future<RequestResult> createProduct({required Product product}) async {
+    // TODO: Refactor this method to support the new Product model with variants.
+    // The current implementation is commented out to prevent compilation errors.
+    /*
     try {
-      firebase.collection('products').doc(product.prodId).set({
-        'prodId': product.prodId,
-        'vendorId': product.vendorId,
-        'productName': product.productName,
-        'price': product.price,
-        'quantity': product.quantity,
-        'category': product.category,
-        'description': product.description,
-        'scheduleDate': product.scheduleDate,
-        'isCharging': product.isCharging,
-        'billingAmount': product.billingAmount,
-        'brandName': product.brandName,
-        'sizesAvailable': product.sizesAvailable,
-        'imgUrls': product.imgUrls,
-        'uploadDate': product.uploadDate,
-        'isFav': product.isFav,
-        'isApproved': product.isApproved,
+      firebase.collection('products').doc(product.firestoreId).set({
+        // ... map fields from the new product model
       });
 
       return RequestResult.success(Success(msg: 'Upload successfully'));
@@ -34,29 +22,19 @@ class ProductController {
     } catch (e) {
       return RequestResult.error('Error occurred!');
     }
+    */
+    print("createProduct is not implemented");
+    return RequestResult.error('This feature is temporarily disabled.');
   }
-
 
   // edit product
   Future<RequestResult> editProduct({required Product product}) async {
+    // TODO: Refactor this method to support the new Product model with variants.
+    // The current implementation is commented out to prevent compilation errors.
+    /*
     try {
-      firebase.collection('products').doc(product.prodId).update({
-        'prodId': product.prodId,
-        'vendorId': product.vendorId,
-        'productName': product.productName,
-        'price': product.price,
-        'quantity': product.quantity,
-        'category': product.category,
-        'description': product.description,
-        'scheduleDate': product.scheduleDate,
-        'isCharging': product.isCharging,
-        'billingAmount': product.billingAmount,
-        'brandName': product.brandName,
-        'sizesAvailable': product.sizesAvailable,
-        'imgUrls': product.imgUrls,
-        'uploadDate': product.uploadDate,
-        'isFav': product.isFav,
-        'isApproved': product.isApproved,
+      firebase.collection('products').doc(product.firestoreId).update({
+        // ... map fields from the new product model
       });
 
       return RequestResult.success(Success(msg: 'Upload successfully'));
@@ -65,5 +43,8 @@ class ProductController {
     } catch (e) {
       return RequestResult.error('Error occurred!');
     }
+    */
+    print("editProduct is not implemented");
+    return RequestResult.error('This feature is temporarily disabled.');
   }
 }

@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:convex_bottom_bar/convex_bottom_bar.dart';
-import 'package:provider/provider.dart';
-import '../../providers/cart.dart';
+import 'package:goturey_marketplace/views/components/generic_bottom_nav.dart';
 import 'categories/categories.dart';
 import 'profile/profile.dart';
 import 'search/search.dart';
 import 'store/store.dart';
-import '../../constants/color.dart';
 import 'cart/cart.dart';
 import 'home_screen.dart';
 
@@ -45,54 +42,43 @@ class _CustomerMainStateScreen extends State<CustomerMainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    CartProvider cartProvider = Provider.of<CartProvider>(context);
-
-
     return Scaffold(
-      bottomNavigationBar: ConvexAppBar(
-        backgroundColor: primaryColor,
-        activeColor: Colors.white,
-        style: TabStyle.reactCircle,
-        initialActiveIndex: _pageIndex,
-        items: [
-          buildTabItem(Icons.home, 0),
-          buildTabItem(Icons.manage_search, 1),
-          buildTabItem(Icons.storefront, 2),
-          buildTabItem(Icons.search, 3),
-
-          // cart
-          TabItem(
-            icon: Badge(
-              backgroundColor: Colors.white,
-              label:  Text(
-               '${cartProvider.getCartQuantity}',
-                style: const TextStyle(
-                  color: primaryColor,
+            bottomNavigationBar: GenericBottomNav(
+              currentIndex: _pageIndex,
+              onTap: (index) {
+                if (index == _pageIndex) return;
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                      builder: (context) => CustomerMainScreen(index: index)),
+                );
+              },
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: 'Home',
                 ),
-              ),
-              child: Icon(
-                Icons.shopping_cart,
-                size: _pageIndex == 4 ? 40 : 25,
-                color: accentColor,
-              ),
-            ),
-          ),
-          buildTabItem(Icons.person, 5),
-        ],
-        onTap: setNewPage,
-      ),
-      body: _pages[_pageIndex],
-    );
-  }
-
-  // custom tab item
-  TabItem<dynamic> buildTabItem(IconData icon, int pageIndex) {
-    return TabItem(
-      icon: Icon(
-        icon,
-        color: accentColor,
-        size: _pageIndex == pageIndex ? 40 : 25,
-      ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.category),
+                  label: 'Categories',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.store),
+                  label: 'Store',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.search),
+                  label: 'Search',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.shopping_cart),
+                  label: 'Cart',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person),
+                  label: 'Profile',
+                ),
+              ],
+            ),      body: _pages[_pageIndex],
     );
   }
 }

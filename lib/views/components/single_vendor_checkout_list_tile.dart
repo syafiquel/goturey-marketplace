@@ -30,6 +30,7 @@ class SingleVendorCheckOutListTile extends StatefulWidget {
 class _SingleVendorCheckOutListTileState
     extends State<SingleVendorCheckOutListTile> {
   Buyer buyer = Buyer.initial();
+  var _isExpanded = false;
 
   // fetch customer details
   Future<void> fetchCustomerDetails() async {
@@ -51,131 +52,23 @@ class _SingleVendorCheckOutListTileState
 
   @override
   Widget build(BuildContext context) {
-    // bottom sheet modal
-    Future<void> showCheckOutInBottom() async {
-      return await showModalBottomSheet(
-        context: context,
-        builder: (context) => Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                KCachedImage(
-                  image: widget.checkoutItem.prodImg,
-                  height:100,
-                  width:120,
-                ),
-
-                const SizedBox(height: 10),
-                Text(
-                  widget.checkoutItem.prodName,
-                  style: getMediumStyle(
-                    color: Colors.black,
-                    fontSize: FontSize.s20,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ItemRow(
-                      value: widget.checkoutItem.prodPrice.toString(),
-                      title: 'Product Price: ',
-                    ),
-                    ItemRow(
-                      value: widget.checkoutItem.isDelivered ? 'Yes' : 'No',
-                      title: 'Delivered Product: ',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ItemRow(
-                      value: widget.checkoutItem.prodSize,
-                      title: 'Selected Size: ',
-                    ),
-                    ItemRow(
-                      value: widget.checkoutItem.prodQuantity.toString(),
-                      title: 'Product Quantity: ',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ItemRow(
-                  value:
-                      intl.DateFormat.yMMMEd().format(widget.checkoutItem.date),
-                  title: 'Order Date: ',
-                ),
-                const SizedBox(height: 15),
-                Text(
-                  'Purchased by:',
-                  style: getRegularStyle(
-                    color: greyFontColor,
-                    fontSize: FontSize.s16,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    border: TableBorder.all(
-                        width: 1,
-                        color: greyFontColor,
-                        borderRadius: BorderRadius.circular(5)),
-                    columns: [
-                      DataColumn(
-                        label: Text(
-                          'Customer Name',
-                          style: getMediumStyle(color: Colors.black),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Customer Email',
-                          style: getMediumStyle(color: Colors.black),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Customer Address',
-                          style: getMediumStyle(color: Colors.black),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Customer Phone',
-                          style: getMediumStyle(color: Colors.black),
-                        ),
-                      ),
-                    ],
-                    rows: [
-                      DataRow(
-                        cells: [
-                          DataCell(Text(buyer.fullname)),
-                          DataCell(Text(buyer.email)),
-                          DataCell(Text(buyer.address)),
-                          DataCell(Text(buyer.phone)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade100,
+            blurRadius: 4.0,
+            offset: const Offset(0, 2),
           ),
-        ),
-      );
-    }
-
-    return InkWell(
-      onTap: () => showCheckOutInBottom(),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: ListTile(
+        ],
+      ),
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 0),
             leading: CachedNetworkImage(
               imageUrl: widget.checkoutItem.prodImg,
               imageBuilder: (context, imageProvider) => CircleAvatar(
@@ -201,8 +94,80 @@ class _SingleVendorCheckOutListTileState
                 Text('Quantity: ${widget.checkoutItem.prodQuantity}'),
               ],
             ),
+            trailing: IconButton(
+              icon: Icon(
+                _isExpanded
+                    ? Icons.keyboard_arrow_up
+                    : Icons.keyboard_arrow_down,
+                color: Colors.grey.shade600,
+              ),
+              onPressed: () => setState(() {
+                _isExpanded = !_isExpanded;
+              }),
+            ),
           ),
-        ),
+          if (_isExpanded)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Order Details:',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  ItemRow(
+                    value: widget.checkoutItem.prodPrice.toStringAsFixed(2),
+                    title: 'Product Price: ',
+                  ),
+                  ItemRow(
+                    value: widget.checkoutItem.isDelivered ? 'Yes' : 'No',
+                    title: 'Delivered: ',
+                  ),
+                  ItemRow(
+                    value: widget.checkoutItem.prodSize,
+                    title: 'Selected Size: ',
+                  ),
+                  ItemRow(
+                    value: widget.checkoutItem.prodQuantity.toString(),
+                    title: 'Product Quantity: ',
+                  ),
+                  ItemRow(
+                    value:
+                        intl.DateFormat.yMMMEd().format(widget.checkoutItem.date),
+                    title: 'Order Date: ',
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Customer Details:',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  ItemRow(
+                    value: buyer.fullname,
+                    title: 'Name: ',
+                  ),
+                  ItemRow(
+                    value: buyer.email,
+                    title: 'Email: ',
+                  ),
+                  ItemRow(
+                    value: buyer.address,
+                    title: 'Address: ',
+                  ),
+                  ItemRow(
+                    value: buyer.phone,
+                    title: 'Phone: ',
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

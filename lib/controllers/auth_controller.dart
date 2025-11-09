@@ -13,6 +13,9 @@ class AuthController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore firebase = FirebaseFirestore.instance;
 
+  // Public getter for FirebaseAuth instance
+  FirebaseAuth get auth => _auth;
+
   Future<AuthResult?> signInUser(String email, String password) async {
     try {
       var credential = await _auth.signInWithEmailAndPassword(
@@ -95,6 +98,11 @@ class AuthController {
           'customerId': credential.user!.uid,
         });
       }
+
+      firebase.collection('users').doc(credential.user!.uid).set({
+        'accountType': accountType.toString(),
+      });
+
       return AuthResult.success(credential.user);
     } on FirebaseAuthException catch (e) {
       var response = 'error';
@@ -162,6 +170,14 @@ class AuthController {
           },
         );
       }
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(logCredential.user!.uid)
+          .set({
+        'accountType': accountType.toString(),
+      });
+
       // sign in with credential
       final UserCredential userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);

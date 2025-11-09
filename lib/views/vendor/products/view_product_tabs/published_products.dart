@@ -9,7 +9,7 @@ import '../../../../models/product.dart';
 import '../../../../resources/assets_manager.dart';
 import '../../../../resources/font_manager.dart';
 import '../../../../resources/styles_manager.dart';
-import '../../../components/single_vendor_product_list_tile.dart';
+import '../../../components/single_product_grid.dart'; // Import SingleProductGridItem
 import '../../../widgets/are_you_sure_dialog.dart';
 import '../../../widgets/loading_widget.dart';
 import '../single_product.dart';
@@ -24,226 +24,170 @@ class PublishedProducts extends StatefulWidget {
 class _PublishedProductsState extends State<PublishedProducts> {
   var userId = FirebaseAuth.instance.currentUser!.uid;
 
-  // toggle publish dialog
-  void togglePublishProductDialog(Product product) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          product.isApproved ? 'Unpublish Product' : 'Publish Product',
-          style: getMediumStyle(
-            color: Colors.black,
-            fontSize: FontSize.s16,
-          ),
-        ),
-        content: Text(
-            'Are you sure you want to ${product.isApproved ? 'unpublish' : 'publish'} ${product.productName}'),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () =>
-                togglePublication(product.prodId, product.isApproved),
-            child: const Text('Yes'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Dismiss'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // togglePublication
-  Future<void> togglePublication(String prodId, bool isApproved) async {
-    await FirebaseCollections.productsCollection.doc(prodId).update({
-      'isApproved': !isApproved,
-    }).whenComplete(
-      () => Navigator.of(context).pop(),
-    );
-  }
-
-  // edit product
-  void navigateToEditingProduct(Product product) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => VendorEditProduct(product: product),
-      ),
-    );
-  }
-
   // delete product dialog
   void deleteProductDialog(Product product) {
     areYouSureDialog(
       title: 'Delete Product',
-      content: 'Are you sure you want to delete ${product.productName}',
+      content: 'Are you sure you want to delete ${product.name}',
       context: context,
-      action: deleteProduct,
-      isIdInvolved: true,
-      id: product.prodId,
+      action: () => deleteProduct(product.firestoreId!),
     );
   }
 
   // delete product
   Future<void> deleteProduct(String prodId) async {
     await FirebaseCollections.productsCollection.doc(prodId).delete();
+    Navigator.of(context).pop(); // Close dialog
   }
 
-  void shareProduct(Product product) {
-    Share.share(
-      'Check out ${product.productName}. \nWe have ${product.quantity} available and we can deliver!',
-      subject: 'We are selling it for ${product.price}',
+  // toggle publish product dialog
+  void togglePublishProductDialog(Product product) {
+    areYouSureDialog(
+      title: product.isPublished ? 'Unpublish Product' : 'Publish Product',
+      content: 'Are you sure you want to ${product.isPublished ? 'unpublish' : 'publish'} ${product.name}',
+      context: context,
+      action: () => togglePublishProduct(product.firestoreId!, product.isPublished),
     );
+  }
+
+  // toggle publish product
+  Future<void> togglePublishProduct(String prodId, bool isPublished) async {
+    await FirebaseCollections.productsCollection.doc(prodId).update({
+      'isPublished': !isPublished,
+    });
+    Navigator.of(context).pop(); // Close dialog
   }
 
   @override
   Widget build(BuildContext context) {
-    Stream<QuerySnapshot> productsStream = FirebaseCollections
-        .productsCollection
+    Stream<QuerySnapshot> productsStream = FirebaseCollections.productsCollection
         .where('vendorId', isEqualTo: userId)
-        .where('isApproved', isEqualTo: true)
+        .where('isPublished', isEqualTo: true)
         .snapshots();
 
-    return Scaffold(
-      body: StreamBuilder<QuerySnapshot>(
-        stream: productsStream,
-        builder: (
-          BuildContext context,
-          AsyncSnapshot<QuerySnapshot> snapshot,
-        ) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.asset(
-                      AssetManager.warningImage,
-                      fit: BoxFit.cover,
-                    ),
+    return StreamBuilder<QuerySnapshot>(
+      stream: productsStream,
+      builder: (
+        BuildContext context,
+        AsyncSnapshot<QuerySnapshot> snapshot,
+      ) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    AssetManager.warningImage,
+                    fit: BoxFit.cover,
                   ),
-                  const SizedBox(height: 10),
-                  const Text('An error occurred!'),
-                ],
-              ),
-            );
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: LoadingWidget(size: 30),
-            );
-          }
-
-          if (snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.asset(
-                      AssetManager.addImage,
-                      width: 200,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text('Product list is empty'),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.only(
-              top: 10,
-              left: 10,
-              right: 10,
+                ),
+                const SizedBox(height: 10),
+                const Text('An error occurred!'),
+              ],
             ),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              final item = snapshot.data!.docs[index];
+          );
+        }
 
-              Product product = Product.fromJson(item);
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: LoadingWidget(size: 30),
+          );
+        }
 
-              return InkWell(
+        if (snapshot.data!.docs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    AssetManager.addImage,
+                    width: 200,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text('No published products found.'),
+              ],
+            ),
+          );
+        }
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(10),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 0.75,
+          ),
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            final item = snapshot.data!.docs[index];
+            Product product = Product.fromJson(item);
+            Size size = MediaQuery.of(context).size;
+
+            return Slidable(
+              key: ValueKey(product.firestoreId),
+              startActionPane: ActionPane(
+                motion: const ScrollMotion(),
+                children: [
+                  SlidableAction(
+                    padding: const EdgeInsets.only(right: 3),
+                    borderRadius: BorderRadius.circular(10),
+                    onPressed: (context) => deleteProductDialog(product),
+                    backgroundColor: const Color(0xFFFE4A49),
+                    foregroundColor: Colors.white,
+                    icon: Icons.delete,
+                    label: 'Delete',
+                  ),
+                ],
+              ),
+              endActionPane: ActionPane(
+                motion: const ScrollMotion(),
+                children: [
+                  SlidableAction(
+                    borderRadius: BorderRadius.circular(10),
+                    onPressed: (context) => togglePublishProductDialog(product),
+                    backgroundColor: Colors.grey,
+                    foregroundColor: Colors.white,
+                    icon: product.isPublished
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                    label: product.isPublished ? 'Unpublish' : 'Publish',
+                  ),
+                  SlidableAction(
+                    borderRadius: BorderRadius.circular(10),
+                    onPressed: (context) => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => VendorEditProduct(product: product),
+                      ),
+                    ),
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    icon: Icons.edit,
+                    label: 'Edit',
+                  ),
+                ],
+              ),
+              child: InkWell(
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => VendorProductDetailsScreen(
-                      product: product,
-                    ),
+                    builder: (context) => VendorProductDetailsScreen(product: product),
                   ),
                 ),
-                child: Slidable(
-                  key: const ValueKey(0),
-                  startActionPane: ActionPane(
-                    motion: const ScrollMotion(),
-                    children: [
-                      SlidableAction(
-                        padding: const EdgeInsets.only(right: 3),
-                        borderRadius: BorderRadius.circular(10),
-                        onPressed: (context) => deleteProductDialog(product),
-                        backgroundColor: const Color(0xFFFE4A49),
-                        foregroundColor: Colors.white,
-                        icon: Icons.delete,
-                        label: 'Delete',
-                      ),
-                      SlidableAction(
-                        borderRadius: BorderRadius.circular(10),
-                        onPressed: (context) => shareProduct(product),
-                        backgroundColor: const Color(0xFF21B7CA),
-                        foregroundColor: Colors.white,
-                        icon: Icons.share,
-                        label: 'Share',
-                      ),
-                    ],
-                  ),
-                  endActionPane: ActionPane(
-                    motion: const ScrollMotion(),
-                    children: [
-                      SlidableAction(
-                        padding: const EdgeInsets.only(right: 3),
-                        borderRadius: BorderRadius.circular(10),
-                        onPressed: (context) =>
-                            navigateToEditingProduct(product),
-                        backgroundColor: const Color(0xFF7BC043),
-                        foregroundColor: Colors.white,
-                        icon: Icons.edit,
-                        label: 'Edit',
-                      ),
-                      SlidableAction(
-                        borderRadius: BorderRadius.circular(10),
-                        onPressed: (context) =>
-                            togglePublishProductDialog(product),
-                        backgroundColor: Colors.grey,
-                        foregroundColor: Colors.white,
-                        icon: product.isApproved
-                            ? Icons.cancel
-                            : Icons.check_circle,
-                        label: product.isApproved ? 'Unpublish' : 'Publish',
-                      ),
-                    ],
-                  ),
-                  child: SingleVendorProductListTile(product: product),
+                child: SingleProductGridItem(
+                  product: product,
+                  size: size,
                 ),
-              );
-            },
-          );
-        },
-      ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

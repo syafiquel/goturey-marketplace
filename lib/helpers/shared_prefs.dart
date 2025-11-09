@@ -2,33 +2,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/enums/account_type.dart';
 
-// check if app has ran before
-Future<bool> checkIfAppPreviouslyRun() async {
+// save cart
+Future<void> saveCart(String cartJson) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  return prefs.getBool('isAppPreviouslyRun') ?? false;
+  await prefs.setString('cart', cartJson);
 }
 
-// set appIsPreviouslyRun
-Future<void> setAppPreviouslyRun() async {
+// load cart
+Future<String?> loadCart() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  await prefs.setBool('isAppPreviouslyRun', true);
-}
-
-
-
-// set account type
-Future<void> setAccountType({required AccountType accountType}) async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  await prefs.setBool(
-    'isCustomer',
-    accountType == AccountType.customer ? true : false,
-  );
-}
-
-
-
-// check account type
-Future<bool> checkAccountType() async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  return prefs.getBool('isCustomer') ?? true;
+  return prefs.getString('cart');
 }

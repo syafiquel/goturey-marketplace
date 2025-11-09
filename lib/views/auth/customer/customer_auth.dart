@@ -38,6 +38,7 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
   var isLogin = true;
   File? profileImage;
   var isLoading = false;
+  AccountType _accountType = AccountType.customer;
   final firebase = FirebaseFirestore.instance;
   final AuthController _authController = AuthController();
 
@@ -46,6 +47,34 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
     setState(() {
       obscure = !obscure;
     });
+  }
+
+  // Helper function to check if an email exists in customer or vendor collections
+  Future<Map<String, bool>> _checkEmailExistence(String email) async {
+    bool customerExists = false;
+    bool vendorExists = false;
+
+    // Check in customers collection
+    QuerySnapshot customerQuery = await firebase
+        .collection('customers')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+    if (customerQuery.docs.isNotEmpty) {
+      customerExists = true;
+    }
+
+    // Check in vendors collection
+    QuerySnapshot vendorQuery = await firebase
+        .collection('vendors')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+    if (vendorQuery.docs.isNotEmpty) {
+      vendorExists = true;
+    }
+
+    return {'customer': customerExists, 'vendor': vendorExists};
   }
 
   // get context
@@ -122,23 +151,8 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
               return 'Phone number is not valid';
             }
             break;
-          case Field.taxNumber:
-            if (value!.isEmpty || value.length < 8) {
-              return 'Tax number needs to be valid';
-            }
-            break;
-          case Field.storeRegNo:
-            if (value!.isEmpty || value.length < 8) {
-              return 'Store registration number needs to be valid';
-            }
-            break;
-          case Field.address:
-            if (value!.isEmpty || value.length < 10) {
-              return 'Address is not valid';
-            }
-            break;
           case Field.password:
-            if (value!.isEmpty || value.length < 8) {
+            if (value!.isEmpty || value.length < 6) {
               return 'Password needs to be valid';
             }
             break;
@@ -163,16 +177,119 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
       isLoading = true;
     });
 
-    // customer account
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      RouteManager.customerMainScreen,
-      (route) => false,
-    );
+    if (isLogin) {
+      await _getAndNavigateBasedOnAccountType();
+    } else {
+      if (_accountType == AccountType.customer) {
+        // customer account
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          RouteManager.customerMainScreen,
+          (route) => false,
+        );
+      } else {
+        // vendor account
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          RouteManager.vendorMainScreen,
+          (route) => false,
+        );
+      }
+    }
+  }
 
-    // set account type to customer
-    await setAccountType(
-      accountType: AccountType.customer,
-    );
+  Future<void> _getAndNavigateBasedOnAccountType() async {
+    final user = _authController.auth.currentUser;
+    if (user == null) {
+      // Handle case where user is not signed in (should not happen here)
+      return;
+    }
+
+    final String? userEmail = user.email;
+    if (userEmail == null) {
+      // Handle case where user email is not available
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        RouteManager.customerMainScreen, // Default fallback
+        (route) => false,
+      );
+      return;
+    }
+
+    Map<String, bool> emailExistence = await _checkEmailExistence(userEmail);
+    bool customerEmailExists = emailExistence['customer']!;
+    bool vendorEmailExists = emailExistence['vendor']!;
+
+    AccountType? finalAccountType;
+
+    if (customerEmailExists && vendorEmailExists) {
+      // If email exists in both, prompt user to choose
+      finalAccountType = await showDialog<AccountType>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Choose Account Type'),
+            content: const Text('This email is associated with both a customer and a vendor account. Which one would you like to log in as?'),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Customer'),
+                onPressed: () {
+                  Navigator.of(context).pop(AccountType.customer);
+                },
+              ),
+              TextButton(
+                child: const Text('Vendor'),
+                onPressed: () {
+                  Navigator.of(context).pop(AccountType.vendor);
+                },
+              ),
+            ],
+          );
+        },
+      );
+
+      if (finalAccountType == null) {
+        // User cancelled the choice, log out or show error
+        await _authController.auth.signOut(); // Sign out the user if they cancel
+        completeAction(); // Reset loading state and pop any dialogs
+        return;
+      }
+    } else if (customerEmailExists) {
+      finalAccountType = AccountType.customer;
+    } else if (vendorEmailExists) {
+      finalAccountType = AccountType.vendor;
+    } else {
+      // If email not found in either (e.g., new Google sign-in, or data inconsistency)
+      // Fallback to checking by UID, or default to customer
+      DocumentSnapshot customerDoc = await firebase.collection('customers').doc(user.uid).get();
+      if (customerDoc.exists) {
+        finalAccountType = AccountType.customer;
+      } else {
+        DocumentSnapshot vendorDoc = await firebase.collection('vendors').doc(user.uid).get();
+        if (vendorDoc.exists) {
+          finalAccountType = AccountType.vendor;
+        } else {
+          // If neither email nor UID found, default to customer
+          finalAccountType = AccountType.customer;
+        }
+      }
+    }
+
+    // Navigate based on the finalAccountType
+    if (finalAccountType == AccountType.customer) {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        RouteManager.customerMainScreen,
+        (route) => false,
+      );
+    } else if (finalAccountType == AccountType.vendor) {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        RouteManager.vendorMainScreen,
+        (route) => false,
+      );
+    } else {
+      // Should not happen if finalAccountType is always set
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        RouteManager.customerMainScreen, // Default fallback
+        (route) => false,
+      );
+    }
   }
 
   // called after an action is completed
@@ -238,7 +355,7 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
         fullname: _fullnameController.text.trim(),
         phone: _phoneController.text.trim(),
         password: _passwordController.text.trim(),
-        accountType: AccountType.customer,
+        accountType: _accountType,
         //profileImage: profileImage,
         //profileImage: 'https://placehold.co/400x400?text=No+Image',
       );
@@ -264,7 +381,7 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
 
     try {
       AuthResult? result = await _authController.googleAuth(
-        AccountType.customer,
+        _accountType,
       );
 
       if (result!.user != null) {
@@ -333,7 +450,9 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
                   const SizedBox(height: 20),
                   Center(
                     child: Text(
-                      isLogin ? 'Customer Signin ' : 'Customer Signup',
+                      isLogin
+                          ? 'Sign in to your Account'
+                          : 'Signup for a new Account',
                       style: const TextStyle(
                         color: accentColor,
                         fontSize: 18,
@@ -341,6 +460,37 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  !isLogin
+                      ? Center(
+                          child: ToggleButtons(
+                            isSelected: [
+                              _accountType == AccountType.customer,
+                              _accountType == AccountType.vendor,
+                            ],
+                            onPressed: (index) {
+                              setState(() {
+                                _accountType = index == 0
+                                    ? AccountType.customer
+                                    : AccountType.vendor;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            selectedColor: Colors.white,
+                            fillColor: primaryColor,
+                            children: const [
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 12.0),
+                                child: Text('Customer'),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 12.0),
+                                child: Text('Vendor'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox.shrink(),
                   const SizedBox(height: 20),
                   isLoading
                       ? const Center(
@@ -380,6 +530,7 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
                                       false,
                                     )
                                   : const SizedBox.shrink(),
+                              SizedBox(height: isLogin ? 0 : 10),
                               SizedBox(height: isLogin ? 0 : 10),
                               kTextField(
                                 _passwordController,

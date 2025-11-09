@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:goturey_marketplace/controllers/auth_controller.dart';
 
-import '../../controllers/auth_controller.dart';
 import '../../controllers/route_manager.dart';
 import 'are_you_sure_dialog.dart';
 
@@ -21,7 +21,7 @@ class _VendorLogoutAcState extends State<VendorLogoutAc> {
   logout() async {
     await authController.signOut();
     Navigator.of(ctx)
-        .pushNamedAndRemoveUntil(RouteManager.accountType, (route) => false);
+        .pushNamedAndRemoveUntil(RouteManager.customerAuthScreen, (route) => false);
   }
 
   // logout dialog

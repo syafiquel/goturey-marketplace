@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../constants/color.dart';
 import '../../resources/font_manager.dart';
 import '../../resources/styles_manager.dart';
-import '../vendor/main_screen.dart';
 
 class BuildDashboardContainer extends StatelessWidget {
   BuildDashboardContainer({
@@ -13,6 +12,7 @@ class BuildDashboardContainer extends StatelessWidget {
     required this.icon,
     this.index = 0,
     this.isBtn = true,
+    this.onPressed,
   }) : super(key: key);
   final String title;
   final String value;
@@ -20,6 +20,7 @@ class BuildDashboardContainer extends StatelessWidget {
   final IconData icon;
   int index;
   bool isBtn;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +29,15 @@ class BuildDashboardContainer extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.circular(16.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 3), // changes position of shadow
+            ),
+          ],
         ),
         padding: const EdgeInsets.all(8.0),
         child: Column(
@@ -76,12 +85,7 @@ class BuildDashboardContainer extends StatelessWidget {
                 ? ElevatedButton(
                     style:
                         ElevatedButton.styleFrom(backgroundColor: Colors.white),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            VendorMainScreen(index: index), // Todo: add index
-                      ),
-                    ),
+                    onPressed: onPressed,
                     child: FittedBox(
                       child: Text(
                         'view more',

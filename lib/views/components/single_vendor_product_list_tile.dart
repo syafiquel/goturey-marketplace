@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:goturey_marketplace/views/widgets/k_cached_image.dart';
 
 import '../../models/product.dart';
-
 
 class SingleVendorProductListTile extends StatelessWidget {
   const SingleVendorProductListTile({
@@ -14,24 +12,11 @@ class SingleVendorProductListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: ListTile(
-          leading: KCachedImage(
-            image: product.imgUrls[0],
-            isCircleAvatar: true,
-            radius: 30,
-          ),
-          title: Text(product.productName),
-          subtitle: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('\$${product.price}'),
-              Text('Quantity: ${product.quantity}'),
-            ],
-          ),
-        ),
+    // TODO: This widget is temporarily disabled due to data model changes.
+    // Refactor to use the new Product model with variants.
+    return const Card(
+      child: ListTile(
+        title: Text('This component is under construction.'),
       ),
     );
   }

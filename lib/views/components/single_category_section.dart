@@ -52,10 +52,15 @@ class SingleCategorySection extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: AppSize.s10),
-          Text(
-            item.title,
-            style: const TextStyle(color: greyFontColor),
+          const SizedBox(height: AppSize.s4), // Reduced spacing
+          Expanded(
+            child: Text(
+              item.title,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2, // Allow text to wrap to a second line if needed
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ),
         ],
       ),

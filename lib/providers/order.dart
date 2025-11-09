@@ -24,7 +24,11 @@ class OrderProvider extends ChangeNotifier {
   double get getTotal {
     var total = 0.0;
     for (var order in _orders) {
-      total += order.totalAmount;
+      for (var product in order.products) {
+        var amount = product.price * product.quantity;
+        total += amount;
+        print(total);
+      }
     }
     return total;
   }

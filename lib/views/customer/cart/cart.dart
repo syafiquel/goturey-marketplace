@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:goturey_marketplace/providers/cart.dart';
 import 'package:goturey_marketplace/views/customer/main_screen.dart';
 import 'package:goturey_marketplace/views/widgets/are_you_sure_dialog.dart';
+import 'package:goturey_marketplace/views/customer/widgets/main_bottom_nav.dart';
+import 'package:goturey_marketplace/views/widgets/main_app_bar.dart';
 import '../../../constants/color.dart';
 import '../../../constants/enums/status.dart';
 import '../../../controllers/route_manager.dart';
@@ -22,25 +24,33 @@ class CartScreen extends StatefulWidget {
 
 class CartScreenState extends State<CartScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => Provider.of<CartProvider>(context, listen: false).loadCartFromPrefs(),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     var cartData = Provider.of<CartProvider>(context);
 
-    // remove cart items
+    // Remove cart items
     void removeAllCartItems() {
       cartData.clearCart();
     }
 
-    // remove all cart items dialog
+    // Remove all cart items dialog
     void removeAllCartItemsDialog() {
       areYouSureDialog(
         title: 'Remove all cart items',
-        content: 'Are you sure you want to remove all cart items',
+        content: 'Are you sure you want to remove all cart items?',
         context: context,
         action: removeAllCartItems,
       );
     }
 
-    // order now
+    // Order now
     void orderNow() {
       if (cartData.getCartTotalAmount() > 0) {
         Provider.of<OrderProvider>(context, listen: false).addOrder(
@@ -59,165 +69,264 @@ class CartScreenState extends State<CartScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
+      // Using the consistent app bar design pattern
+      appBar: MainAppBar(
+        title: 'Shopping Cart',
         actions: [
-          if (cartData.isItemEmpty()) ...[
-            const SizedBox.shrink()
-          ] else ...[
-            GestureDetector(
-              onTap: () => Navigator.of(context).pushNamed(
+          if (!cartData.isItemEmpty()) ...[
+            IconButton(
+              onPressed: () => Navigator.of(context).pushNamed(
                 RouteManager.ordersScreen,
               ),
-              child: const Icon(
+              icon: const Icon(
                 Icons.shopping_cart_checkout,
-                color: iconColor,
-                size: 30,
+                color: Colors.grey,
               ),
             ),
-            const SizedBox(width: 10),
-            GestureDetector(
-              onTap: () => removeAllCartItemsDialog(),
-              child: const Icon(
+            IconButton(
+              onPressed: () => removeAllCartItemsDialog(),
+              icon: const Icon(
                 Icons.delete_forever,
-                color: iconColor,
-                size: 30,
+                color: Colors.grey,
               ),
             ),
-            const SizedBox(width: 18),
-          ]
+          ],
         ],
       ),
-      backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.all(18.0),
-        child: cartData.isItemEmpty()
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(AssetManager.empty),
-                    const SizedBox(height: 20),
-                    const Text('Ops! Cart is empty'),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
+      backgroundColor: Colors.grey.shade50, // Consistent with product details background
+      body: cartData.isItemEmpty()
+          ? _buildEmptyCart()
+          : _buildCartContent(cartData),
+      bottomNavigationBar: const MainBottomNav(
+        currentIndex: 3, // Cart tab index
+        isProductDetailsPage: false,
+      ),
+      bottomSheet: cartData.isItemEmpty() ? null : _buildCheckoutSection(cartData, orderNow),
+    );
+  }
+
+  // Empty cart state with consistent styling
+  Widget _buildEmptyCart() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.shade200,
+                    blurRadius: 8.0,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Image.asset(
+                    AssetManager.empty,
+                    height: 120,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Your cart is empty',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Add some amazing wildlife experiences to get started',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: accentColor,
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        elevation: 0,
                       ),
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const CustomerMainScreen(index: 0),
+                          builder: (context) => const CustomerMainScreen(index: 0),
                         ),
                       ),
-                      child: const Text('Continue shopping'),
-                    )
-                  ],
-                ),
-              )
-            : ListView.builder(
-                itemCount: cartData.getCartQuantity,
-                itemBuilder: (context, index) {
-                  var item = cartData.getCartItems.values.toList()[index];
-
-                  return SingleCartItem(item: item, cartData: cartData);
-                },
-              ),
-      ),
-      bottomSheet: cartData.isItemEmpty()
-          ? const SizedBox.shrink()
-          : Container(
-              color: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18.0,
-                  vertical: 10,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total Price',
-                          style: getRegularStyle(
-                            color: greyFontColor,
-                            fontWeight: FontWeight.w500,
-                            fontSize: FontSize.s14,
-                          ),
+                      child: const Text(
+                        'Continue Shopping',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '\$${cartData.getCartTotalAmount().toStringAsFixed(2)}',
-                          style: getMediumStyle(
-                            color: accentColor,
-                            fontSize: FontSize.s25,
-                          ),
-                        )
-                      ],
+                      ),
                     ),
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Container(
-                          height: 50,
-                          width: 80,
-                          decoration: BoxDecoration(
-                            color: accentColor.withOpacity(0.3),
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(5),
-                              topLeft: Radius.circular(5),
-                            ),
-                          ),
-                          child: Center(
-                            child: Wrap(
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.shopping_cart_checkout,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 15),
-                                Text(
-                                  cartData.getCartQuantity.toString(),
-                                  style: getRegularStyle(
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => orderNow(),
-                          child: Container(
-                            height: 50,
-                            width: 120,
-                            decoration: const BoxDecoration(
-                              color: accentColor,
-                              borderRadius: BorderRadius.only(
-                                bottomRight: Radius.circular(5),
-                                topRight: Radius.circular(5),
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Order Now',
-                                style: getMediumStyle(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                      ],
-                    )
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Cart content with consistent card styling
+  Widget _buildCartContent(CartProvider cartData) {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: ListView.separated(
+        padding: const EdgeInsets.only(bottom: 120.0), // Space for checkout section
+        itemCount: cartData.getCartQuantity,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          var item = cartData.getCartItems.values.toList()[index];
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12.0),
+              border: Border.all(
+                color: Colors.grey.shade300,
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.shade100,
+                  blurRadius: 4.0,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SingleCartItem(item: item, cartData: cartData),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Redesigned checkout section following design consistency
+  Widget _buildCheckoutSection(CartProvider cartData, VoidCallback orderNow) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade300,
+            blurRadius: 8.0,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Total price section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total Price',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'RM ${cartData.getCartTotalAmount().toStringAsFixed(2)}',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Cart quantity badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.blueAccent.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.shopping_cart,
+                          size: 16,
+                          color: Colors.blueAccent,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${cartData.getCartQuantity} items',
+                          style: TextStyle(
+                            color: Colors.blueAccent,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Order now button with consistent styling
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: orderNow,
+                  child: const Text(
+                    'Order Now',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

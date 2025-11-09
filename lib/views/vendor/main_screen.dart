@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:convex_bottom_bar/convex_bottom_bar.dart';
+import 'package:goturey_marketplace/views/components/generic_bottom_nav.dart';
 import 'package:goturey_marketplace/views/vendor/profile/profile.dart';
 import 'package:goturey_marketplace/views/vendor/dashboard.dart';
 import 'package:goturey_marketplace/views/vendor/products/view_all.dart';
@@ -10,12 +10,14 @@ class VendorMainScreen extends StatefulWidget {
   const VendorMainScreen({super.key, required this.index});
   final int index;
 
+  // This is a test comment to force recompilation.
+
 
   @override
-  State<VendorMainScreen> createState() => _CustomerMainStateScreen();
+  State<VendorMainScreen> createState() => _VendorMainScreenState();
 }
 
-class _CustomerMainStateScreen extends State<VendorMainScreen> {
+class _VendorMainScreenState extends State<VendorMainScreen> {
   var _pageIndex = 0;
 
   final List<Widget> _pages = const [
@@ -42,31 +44,30 @@ class _CustomerMainStateScreen extends State<VendorMainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: ConvexAppBar(
-        backgroundColor: primaryColor,
-        activeColor: Colors.white,
-        style: TabStyle.reactCircle,
-        initialActiveIndex: _pageIndex,
-        items: [
-          buildTabItem(Icons.home, 0),
-          buildTabItem(Icons.shopping_bag, 1),
-          buildTabItem(Icons.storefront, 2),
-          buildTabItem(Icons.person, 3),
-        ],
+      bottomNavigationBar: GenericBottomNav(
+        currentIndex: _pageIndex,
         onTap: setNewPage,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_bag),
+            label: 'Orders',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storefront),
+            label: 'Products',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
       ),
       body: _pages[_pageIndex],
     );
   }
 
-  // custom tab item
-  TabItem<dynamic> buildTabItem(IconData icon, int pageIndex) {
-    return TabItem(
-      icon: Icon(
-        icon,
-        color: accentColor,
-        size: _pageIndex == pageIndex ? 40 : 25,
-      ),
-    );
-  }
 }

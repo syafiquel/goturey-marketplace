@@ -48,17 +48,20 @@ class _ProductScreenState extends State<ProductScreen>
         ),
       ),
       appBar: AppBar(
-        automaticallyImplyLeading: false,
+        // automaticallyImplyLeading: false, // Allow back button
         title: Text(
           'All Products',
           style: getRegularStyle(
-            color: Colors.white,
+            color: Colors.black,
           ),
         ),
-        backgroundColor: primaryColor,
+        backgroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.black), // For back button icon
         bottom: TabBar(
           controller: _tabBarController,
           indicatorColor: accentColor,
+          labelColor: Colors.black, // Selected tab text color
+          unselectedLabelColor: Colors.grey, // Unselected tab text color
           tabs: const [
             Tab(child: Text('Published Products')),
             Tab(child: Text('Unpublished Products')),

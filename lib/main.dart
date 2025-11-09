@@ -1,17 +1,21 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:goturey_marketplace/constants/enums/account_type.dart';
 import 'package:goturey_marketplace/controllers/route_manager.dart';
 import 'package:goturey_marketplace/providers/cart.dart';
 import 'package:goturey_marketplace/providers/category.dart';
 import 'package:goturey_marketplace/providers/order.dart';
 import 'package:goturey_marketplace/providers/product.dart';
 import 'package:goturey_marketplace/resources/theme_manager.dart';
-import 'package:goturey_marketplace/views/splash/entry.dart';
+import 'package:goturey_marketplace/views/auth/customer/customer_auth.dart';
+import 'package:goturey_marketplace/views/customer/main_screen.dart';
+import 'package:goturey_marketplace/views/vendor/entry_screen.dart';
 import 'constants/color.dart';
 import 'controllers/configs.dart';
 import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'helpers/shared_prefs.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -24,26 +28,13 @@ Future<void> main() async {
 
   await Config.fetchApiKeys(); // fetching api keys
 
-  bool isAppPreviouslyRun =
-      await checkIfAppPreviouslyRun(); // checking if app is previously ran
-  bool isCustomer =
-      await checkAccountType(); // checking if logged in user is a customer
-
-  runApp(MyApp(
-    isAppPreviouslyRun: isAppPreviouslyRun,
-    isCustomer: isCustomer,
-  ));
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({
     super.key,
-    this.isAppPreviouslyRun = false,
-    this.isCustomer = true,
   });
-
-  final bool isAppPreviouslyRun;
-  final bool isCustomer;
 
   @override
   Widget build(BuildContext context) {
@@ -89,16 +80,43 @@ class MyApp extends StatelessWidget {
             builder: EasyLoading.init(),
           );
         },
-        child: EntryScreen(
-          isAppPreviouslyRun: isAppPreviouslyRun,
-          isCustomer: isCustomer,
-        ),
+        child: const AuthGate(),
       ),
     );
   }
 }
 
+class AuthGate extends StatelessWidget {
+  const AuthGate({Key? key}) : super(key: key);
 
-
-
-// TODO: Refactor logic codes to controller later
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return FutureBuilder<DocumentSnapshot>(
+            future: FirebaseFirestore.instance
+                .collection('users')
+                .doc(snapshot.data!.uid)
+                .get(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data!.exists) {
+                final accountType = snapshot.data!['accountType'];
+                if (accountType == AccountType.customer.toString()) {
+                  return const CustomerMainScreen(index: 0);
+                } else {
+                  return const VendorEntryScreen();
+                }
+              } else {
+                return const CustomerAuthScreen();
+              }
+            },
+          );
+        } else {
+          return const CustomerAuthScreen();
+        }
+      },
+    );
+  }
+}

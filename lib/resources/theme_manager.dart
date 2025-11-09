@@ -5,23 +5,26 @@ import 'styles_manager.dart';
 import 'values_manager.dart';
 import 'font_manager.dart';
 
+// Bypassing import issue by defining colors directly. TODO: Consolidate into color.dart later.
+const textPrimaryDark = Color(0xFF212121); // Soft dark grey for text
+const textPrimaryLight = Color(0xFFFFFFFF);
+
 // Light Dark Theme
 ThemeData getLightTheme() {
   return ThemeData(
+    brightness: Brightness.light,
     primaryColor: primaryColor,
-    primaryColorLight: Colors.black,
-    primaryColorDark: Colors.white,
-    disabledColor: backgroundLite,
+    disabledColor: greyShade,
     scaffoldBackgroundColor: backgroundLite,
 
     // dialog theme
     dialogTheme: const DialogThemeData(
       backgroundColor: backgroundLite,
       titleTextStyle: TextStyle(
-        color: Colors.black,
+        color: textPrimaryDark,
       ),
       contentTextStyle: TextStyle(
-        color: Colors.black,
+        color: textPrimaryDark,
       ),
     ),
 
@@ -33,7 +36,7 @@ ThemeData getLightTheme() {
     // card theme
     cardTheme: CardThemeData(
       color: cardsLite,
-      shadowColor: Colors.grey,
+      shadowColor: greyShade,
       elevation: AppSize.s4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSize.s10),
@@ -45,18 +48,13 @@ ThemeData getLightTheme() {
       todayBackgroundColor: MaterialStateProperty.all(primaryColor),
       todayBorder: BorderSide.none,
       shadowColor: primaryColor,
-
     ),
 
-
-
-
-
     // button theme
-    buttonTheme: const ButtonThemeData(
+    buttonTheme: ButtonThemeData(
       buttonColor: primaryColor,
-      shape: StadiumBorder(),
-      disabledColor: backgroundLite,
+      shape: const StadiumBorder(),
+      disabledColor: greyShade,
     ),
 
     // elevated button theme
@@ -67,9 +65,9 @@ ThemeData getLightTheme() {
         ),
         backgroundColor: primaryColor,
         disabledBackgroundColor: accentColor,
-        disabledForegroundColor: Colors.white,
+        disabledForegroundColor: textPrimaryLight,
         textStyle: getRegularStyle(
-          color: Colors.white,
+          color: textPrimaryLight,
           fontSize: FontSize.s16,
           fontWeight: FontWeightManager.bold,
         ),
@@ -90,62 +88,66 @@ ThemeData getLightTheme() {
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSize.s8),
-        borderSide: const BorderSide(color: textBoxLite),
+        borderSide: const BorderSide(color: Colors.red),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSize.s8),
-        borderSide: const BorderSide(color: textBoxLite),
+        borderSide: const BorderSide(color: Colors.red),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSize.s8),
-        borderSide: const BorderSide(color: textBoxLite),
+        borderSide: const BorderSide(color: primaryColor),
       ),
-      labelStyle: getRegularStyle(color: Colors.black),
-      hintStyle: getRegularStyle(color: Colors.grey),
+      labelStyle: getRegularStyle(color: textPrimaryDark),
+      hintStyle: getRegularStyle(color: greyFontColor),
       contentPadding: const EdgeInsets.all(AppPadding.p8),
       errorStyle: getRegularStyle(color: Colors.red),
-      suffixIconColor: accentColor,
-      suffixStyle: getRegularStyle(color: Colors.grey),
-      prefixIconColor: accentColor,
-      prefixStyle: getRegularStyle(color: Colors.grey),
+      suffixIconColor: iconColor,
+      prefixIconColor: iconColor,
     ),
 
     // app bar theme
     appBarTheme: AppBarTheme(
       iconTheme: const IconThemeData(
-        color: Colors.black,
-        size: AppSize.s40,
+        color: textPrimaryDark,
+        size: AppSize.s30, // Adjusted size
       ),
       color: Colors.transparent,
       elevation: AppSize.s0,
       titleTextStyle: getRegularStyle(
-        color: Colors.black,
-        // fontSize: FontSize.s16,
+        color: textPrimaryDark,
+        fontSize: FontSize.s18,
       ),
       systemOverlayStyle: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
         statusBarIconBrightness: Brightness.dark,
       ),
     ),
 
     // text theme
-    textTheme: const TextTheme(
-      displayLarge: TextStyle(
-        color: Colors.black,
-        fontSize: FontSize.s16,
-      ),
-      bodySmall: TextStyle(
-        color: Colors.black,
-        fontSize: FontSize.s12,
-      ),
-      bodyLarge: TextStyle(
-        color: Colors.black,
-      ),
+    textTheme: TextTheme(
+      displayLarge: getHeadingStyle(color: textPrimaryDark, fontSize: FontSize.s30),
+      displayMedium: getHeadingStyle(color: textPrimaryDark, fontSize: FontSize.s25),
+      titleLarge: getBoldStyle(color: textPrimaryDark, fontSize: FontSize.s20),
+      titleMedium: getMediumStyle(color: textPrimaryDark, fontSize: FontSize.s18),
+      titleSmall: getRegularStyle(color: textPrimaryDark, fontSize: FontSize.s16),
+      bodyLarge: getRegularStyle(color: textPrimaryDark, fontSize: FontSize.s14),
+      bodyMedium: getRegularStyle(color: textPrimaryDark, fontSize: FontSize.s12),
+      bodySmall: getLightStyle(color: greyFontColor, fontSize: FontSize.s12),
     ),
 
-    colorScheme: ColorScheme.fromSwatch().copyWith(
-      secondary: Colors.grey,
+    colorScheme: ColorScheme.light(
+      primary: primaryColor,
+      secondary: accentColor,
+      surface: cardsLite,
+      background: backgroundLite,
+      error: Colors.red,
+      onPrimary: textPrimaryLight,
+      onSecondary: textPrimaryDark,
+      onSurface: textPrimaryDark,
+      onBackground: textPrimaryDark,
+      onError: textPrimaryLight,
     ),
   );
 }
@@ -153,20 +155,19 @@ ThemeData getLightTheme() {
 // Dark Theme Settings
 ThemeData getDarkTheme() {
   return ThemeData(
+    brightness: Brightness.dark,
     primaryColor: primaryColor,
-    primaryColorLight: Colors.white,
-    primaryColorDark: textBoxDark,
-    disabledColor: backgroundLite,
+    disabledColor: greyShade,
     scaffoldBackgroundColor: backgroundDark,
 
     // dialog theme
     dialogTheme: const DialogThemeData(
       backgroundColor: backgroundDark,
       titleTextStyle: TextStyle(
-        color: Colors.white,
+        color: textPrimaryLight,
       ),
       contentTextStyle: TextStyle(
-        color: Colors.white,
+        color: textPrimaryLight,
       ),
     ),
 
@@ -178,7 +179,7 @@ ThemeData getDarkTheme() {
     // card theme
     cardTheme: CardThemeData(
       color: cardsDark,
-      shadowColor: Colors.grey,
+      shadowColor: Colors.black.withOpacity(0.5),
       elevation: AppSize.s4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSize.s10),
@@ -186,10 +187,10 @@ ThemeData getDarkTheme() {
     ),
 
     // button theme
-    buttonTheme: const ButtonThemeData(
+    buttonTheme: ButtonThemeData(
       buttonColor: primaryColor,
-      shape: StadiumBorder(),
-      disabledColor: backgroundLite,
+      shape: const StadiumBorder(),
+      disabledColor: greyShade,
     ),
 
     // elevated button theme
@@ -200,9 +201,9 @@ ThemeData getDarkTheme() {
         ),
         backgroundColor: primaryColor,
         disabledBackgroundColor: accentColor,
-        disabledForegroundColor: Colors.white,
+        disabledForegroundColor: textPrimaryLight,
         textStyle: getRegularStyle(
-          color: Colors.white,
+          color: textPrimaryLight,
           fontSize: FontSize.s16,
           fontWeight: FontWeightManager.bold,
         ),
@@ -215,70 +216,74 @@ ThemeData getDarkTheme() {
       filled: true,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSize.s8),
-        borderSide: const BorderSide(color: textBoxLite),
+        borderSide: const BorderSide(color: textBoxDark),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSize.s8),
-        borderSide: const BorderSide(color: textBoxLite),
+        borderSide: const BorderSide(color: textBoxDark),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSize.s8),
-        borderSide: const BorderSide(color: textBoxLite),
+        borderSide: const BorderSide(color: Colors.red),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSize.s8),
-        borderSide: const BorderSide(color: textBoxLite),
+        borderSide: const BorderSide(color: Colors.red),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSize.s8),
-        borderSide: const BorderSide(color: textBoxLite),
+        borderSide: const BorderSide(color: primaryColor),
       ),
-      labelStyle: getRegularStyle(color: Colors.white),
-      hintStyle: getRegularStyle(color: Colors.grey),
+      labelStyle: getRegularStyle(color: textPrimaryLight),
+      hintStyle: getRegularStyle(color: greyFontColor),
       contentPadding: const EdgeInsets.all(AppPadding.p8),
       errorStyle: getRegularStyle(color: Colors.red),
-      suffixIconColor: primaryColor,
-      suffixStyle: getRegularStyle(color: Colors.grey),
-      prefixIconColor: primaryColor,
-      prefixStyle: getRegularStyle(color: Colors.grey),
+      suffixIconColor: iconColor,
+      prefixIconColor: iconColor,
     ),
 
     // app bar theme
     appBarTheme: AppBarTheme(
       iconTheme: const IconThemeData(
-        color: Colors.white,
-        size: AppSize.s40,
+        color: textPrimaryLight,
+        size: AppSize.s30, // Adjusted size
       ),
       color: Colors.transparent,
       elevation: AppSize.s0,
       titleTextStyle: getRegularStyle(
-        color: Colors.white,
-        // fontSize: FontSize.s16,
+        color: textPrimaryLight,
+        fontSize: FontSize.s18,
       ),
       systemOverlayStyle: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarBrightness: Brightness.dark,
-        statusBarIconBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.light,
       ),
     ),
 
     // text theme
-    textTheme: const TextTheme(
-      displayLarge: TextStyle(
-        color: Colors.white,
-        fontSize: FontSize.s16,
-      ),
-      bodySmall: TextStyle(
-        color: Colors.white,
-        fontSize: FontSize.s12,
-      ),
-      bodyLarge: TextStyle(
-        color: Colors.white,
-      ),
+    textTheme: TextTheme(
+      displayLarge: getHeadingStyle(color: textPrimaryLight, fontSize: FontSize.s30),
+      displayMedium: getHeadingStyle(color: textPrimaryLight, fontSize: FontSize.s25),
+      titleLarge: getBoldStyle(color: textPrimaryLight, fontSize: FontSize.s20),
+      titleMedium: getMediumStyle(color: textPrimaryLight, fontSize: FontSize.s18),
+      titleSmall: getRegularStyle(color: textPrimaryLight, fontSize: FontSize.s16),
+      bodyLarge: getRegularStyle(color: textPrimaryLight, fontSize: FontSize.s14),
+      bodyMedium: getRegularStyle(color: textPrimaryLight, fontSize: FontSize.s12),
+      bodySmall: getLightStyle(color: greyFontColor, fontSize: FontSize.s12),
     ),
 
-    colorScheme: ColorScheme.fromSwatch().copyWith(
-      secondary: Colors.grey,
+    colorScheme: ColorScheme.dark(
+      primary: primaryColor,
+      secondary: accentColor,
+      surface: cardsDark,
+      background: backgroundDark,
+      error: Colors.red,
+      onPrimary: textPrimaryLight,
+      onSecondary: textPrimaryDark,
+      onSurface: textPrimaryLight,
+      onBackground: textPrimaryLight,
+      onError: textPrimaryLight,
     ),
   );
 }

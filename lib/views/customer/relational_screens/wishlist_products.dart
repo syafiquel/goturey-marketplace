@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:goturey_marketplace/views/customer/cart/cart.dart';
 import 'package:goturey_marketplace/views/customer/relational_screens/product_details.dart';
 import 'package:goturey_marketplace/views/widgets/msg_snackbar.dart';
+
 import '../../../constants/color.dart';
 import '../../../constants/enums/status.dart';
 import '../../../constants/firebase_refs/collections.dart';
@@ -51,14 +53,13 @@ class _WishListProductsState extends State<WishListProducts> {
   Widget build(BuildContext context) {
     Stream<QuerySnapshot> searchProductsStream = FirebaseFirestore.instance
         .collection('products')
-        .where('isApproved', isEqualTo: true)
+        //.where('isApproved', isEqualTo: true)
         .where('isFav', isEqualTo: true)
         .snapshots();
 
     // remove wishlist items
     void removeAllWishListItems() async {
       Navigator.pop(cxt);
-
 
       for (var id in prodIds) {
         await FirebaseCollections.productsCollection.doc(id).update(
@@ -107,6 +108,15 @@ class _WishListProductsState extends State<WishListProducts> {
           },
         ),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartScreen()),
+              );
+            },
+            icon: const Icon(Icons.shopping_cart_outlined),
+          ),
           if (prodIds.isEmpty) ...[
             const SizedBox.shrink(),
           ] else ...[

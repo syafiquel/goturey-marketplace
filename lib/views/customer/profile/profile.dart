@@ -92,7 +92,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   _logout() {
     auth.signOut();
-    Navigator.of(context).pushNamed(RouteManager.accountType);
+    Navigator.of(context).pushNamedAndRemoveUntil(
+        RouteManager.customerAuthScreen, (route) => false);
   }
 
   _editProfile() {

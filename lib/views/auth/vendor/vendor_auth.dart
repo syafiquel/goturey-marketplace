@@ -1,30 +1,25 @@
-import 'dart:async';
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:cooler_alerts/cooler_alerts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:goturey_marketplace/constants/enums/account_type.dart';
+import 'package:goturey_marketplace/helpers/auth_error_formatter.dart';
+import 'package:goturey_marketplace/helpers/image_picker.dart';
+import 'package:goturey_marketplace/views/widgets/kcool_alert.dart';
+
 import '../../../constants/color.dart';
-import '../../../constants/enums/account_type.dart';
 import '../../../constants/enums/fields.dart';
 import '../../../constants/enums/status.dart';
-import '../../../constants/firebase_refs/collections.dart';
 import '../../../controllers/auth_controller.dart';
 import '../../../controllers/route_manager.dart';
-import '../../../helpers/auth_error_formatter.dart';
 import '../../../helpers/shared_prefs.dart';
 import '../../../models/auth_result.dart';
 import '../../../resources/assets_manager.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/msg_snackbar.dart';
-import '../../widgets/kcool_alert.dart';
-import '../../../helpers/image_picker.dart';
-import 'package:country_state_city_picker/country_state_city_picker.dart';
 
 class VendorAuthScreen extends StatefulWidget {
-  const VendorAuthScreen({
-    Key? key,
-  }) : super(key: key);
+  const VendorAuthScreen({Key? key}) : super(key: key);
 
   @override
   State<VendorAuthScreen> createState() => _VendorAuthScreenState();
@@ -33,25 +28,22 @@ class VendorAuthScreen extends StatefulWidget {
 class _VendorAuthScreenState extends State<VendorAuthScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _storeNameController = TextEditingController();
+  final _fullnameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
-
-  final _taxNumberController = TextEditingController();
-  final _storeNumberController = TextEditingController();
-
   final _countryController = TextEditingController();
   final _stateController = TextEditingController();
   final _cityController = TextEditingController();
+  final _taxNumberController = TextEditingController();
+  final _storeRegNoController = TextEditingController();
 
   var obscure = true; // password obscure value
   var isLogin = true;
   File? profileImage;
   var isLoading = false;
-  final firebase = FirebaseFirestore.instance;
-  final AuthController _authController = AuthController();
-
   bool isStoreRegistered = false;
+
+  final AuthController _authController = AuthController();
 
   // toggle password obscure
   _togglePasswordObscure() {
@@ -80,9 +72,7 @@ class _VendorAuthScreenState extends State<VendorAuthScreen> {
           ? TextInputType.emailAddress
           : field == Field.phone
               ? TextInputType.phone
-              : field == Field.storeRegNo || field == Field.taxNumber
-                  ? TextInputType.number
-                  : TextInputType.text,
+              : TextInputType.text,
       textInputAction:
           field == Field.password ? TextInputAction.done : TextInputAction.next,
       autofocus: field == Field.email ? true : false,
@@ -136,23 +126,23 @@ class _VendorAuthScreenState extends State<VendorAuthScreen> {
               return 'Phone number is not valid';
             }
             break;
-          case Field.taxNumber:
-            if (value!.isEmpty || value.length < 8) {
-              return 'Tax number needs to be valid';
-            }
-            break;
-          case Field.storeRegNo:
-            if (value!.isEmpty || value.length < 8) {
-              return 'Store registration number needs to be valid';
-            }
-            break;
-          case Field.address:
-            if (value!.isEmpty || value.length < 10) {
-              return 'Address is not valid';
-            }
-            break;
+          // case Field.taxNumber:
+          //   if (value!.isEmpty || value.length < 8) {
+          //     return 'Tax number needs to be valid';
+          //   }
+          //   break;
+          // case Field.storeRegNo:
+          //   if (value!.isEmpty || value.length < 8) {
+          //     return 'Store registration number needs to be valid';
+          //   }
+          //   break;
+          // case Field.address:
+          //   if (value!.isEmpty || value.length < 10) {
+          //     return 'Address is not valid';
+          //   }
+          //   break;
           case Field.password:
-            if (value!.isEmpty || value.length < 8) {
+            if (value!.isEmpty || value.length < 6) {
               return 'Password needs to be valid';
             }
             break;
@@ -171,45 +161,16 @@ class _VendorAuthScreenState extends State<VendorAuthScreen> {
     });
   }
 
-  // context
-  get cxt => context;
-
-  // routing to the main screen or the entry screen based on whether approved or not
-  routingVendor() async {
-    var userId = FirebaseAuth.instance.currentUser!.uid;
-    var data = await FirebaseCollections.vendorsCollection
-        .doc(userId)
-        .get();
-
-    if (data['isApproved']) {
-      // account approved
-      Timer(
-        const Duration(seconds: 2),
-        () => Navigator.of(cxt).pushNamedAndRemoveUntil(
-            RouteManager.vendorMainScreen, (route) => false),
-      );
-    } else {
-      // account not approved
-      Timer(
-        const Duration(seconds: 2),
-        () => Navigator.of(cxt).pushNamedAndRemoveUntil(
-          RouteManager.vendorEntryScreen,
-          (route) => false,
-        ),
-      );
-    }
-  }
-
   // loading fnc
   isLoadingFnc() async {
     setState(() {
       isLoading = true;
     });
-    // routing vendor
-    routingVendor();
 
-    // set account type to vendor
-    await setAccountType(accountType: AccountType.vendor);
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      RouteManager.vendorEntryScreen,
+      (route) => false,
+    );
   }
 
   // called after an action is completed
@@ -256,25 +217,15 @@ class _VendorAuthScreenState extends State<VendorAuthScreen> {
       }
     } else {
       // TODO: implement sign up
-      if (profileImage == null) {
-        // store image is empty
-        displaySnackBar(
-          message: 'Store image can not be empty!',
-          status: Status.error,
-          context: context,
-        );
-        return null;
-      }
-
-      if (_cityController.text.isEmpty) {
-        // city is empty
-        displaySnackBar(
-          message: 'You need to select your complete location!',
-          status: Status.error,
-          context: context,
-        );
-        return null;
-      }
+      // if (profileImage == null) {
+      //   // profile image is empty
+      //   displaySnackBar(
+      //     message: 'Profile image can not be empty!',
+      //     status: Status.error,
+      //     context: context,
+      //   );
+      //   return null;
+      // }
 
       setState(() {
         isLoading = true;
@@ -282,17 +233,17 @@ class _VendorAuthScreenState extends State<VendorAuthScreen> {
 
       AuthResult? result = await _authController.signUpUser(
         email: _emailController.text.trim(),
-        fullname: _storeNameController.text.trim(),
+        fullname: _fullnameController.text.trim(),
         phone: _phoneController.text.trim(),
         password: _passwordController.text.trim(),
         accountType: AccountType.vendor,
-        //profileImage: profileImage,
-        country: _countryController.text,
-        state: _stateController.text,
-        city: _cityController.text,
+        country: _countryController.text.trim(),
+        state: _stateController.text.trim(),
+        city: _cityController.text.trim(),
         taxNumber: _taxNumberController.text.trim(),
-        storeRegNo: _storeNumberController.text.trim(),
+        storeRegNo: _storeRegNoController.text.trim(),
         isStoreRegistered: isStoreRegistered,
+        //profileImage: profileImage,
       );
 
       if (result!.user == null) {
@@ -407,7 +358,7 @@ class _VendorAuthScreenState extends State<VendorAuthScreen> {
                             children: [
                               kTextField(
                                 _emailController,
-                                'doe_store@gmail.com',
+                                'doe@gmail.com',
                                 'Email Address',
                                 Field.email,
                                 false,
@@ -415,9 +366,9 @@ class _VendorAuthScreenState extends State<VendorAuthScreen> {
                               const SizedBox(height: 10),
                               !isLogin
                                   ? kTextField(
-                                      _storeNameController,
-                                      'Doe Store',
-                                      'Store name',
+                                      _fullnameController,
+                                      'Goturkey Stores',
+                                      'Store Name',
                                       Field.fullname,
                                       false,
                                     )
@@ -433,6 +384,73 @@ class _VendorAuthScreenState extends State<VendorAuthScreen> {
                                     )
                                   : const SizedBox.shrink(),
                               SizedBox(height: isLogin ? 0 : 10),
+                              !isLogin
+                                  ? kTextField(
+                                      _countryController,
+                                      'Nigeria',
+                                      'Country',
+                                      Field.address,
+                                      false,
+                                    )
+                                  : const SizedBox.shrink(),
+                              SizedBox(height: isLogin ? 0 : 10),
+                              !isLogin
+                                  ? kTextField(
+                                      _stateController,
+                                      'Lagos',
+                                      'State',
+                                      Field.address,
+                                      false,
+                                    )
+                                  : const SizedBox.shrink(),
+                              SizedBox(height: isLogin ? 0 : 10),
+                              !isLogin
+                                  ? kTextField(
+                                      _cityController,
+                                      'Ikeja',
+                                      'City',
+                                      Field.address,
+                                      false,
+                                    )
+                                  : const SizedBox.shrink(),
+                              SizedBox(height: isLogin ? 0 : 10),
+                              !isLogin
+                                  ? kTextField(
+                                      _taxNumberController,
+                                      '1234567890',
+                                      'Tax Number',
+                                      Field.taxNumber,
+                                      false,
+                                    )
+                                  : const SizedBox.shrink(),
+                              SizedBox(height: isLogin ? 0 : 10),
+                              !isLogin
+                                  ? Row(
+                                      children: [
+                                        Checkbox(
+                                          value: isStoreRegistered,
+                                          onChanged: (val) {
+                                            setState(() {
+                                              isStoreRegistered = val!;
+                                            });
+                                          },
+                                        ),
+                                        const Text(
+                                            'Is your store registered?'),
+                                      ],
+                                    )
+                                  : const SizedBox.shrink(),
+                              SizedBox(height: isLogin ? 0 : 10),
+                              !isLogin && isStoreRegistered
+                                  ? kTextField(
+                                      _storeRegNoController,
+                                      '1234567890',
+                                      'Store Registration Number',
+                                      Field.storeRegNo,
+                                      false,
+                                    )
+                                  : const SizedBox.shrink(),
+                              SizedBox(height: isLogin ? 0 : 10),
                               kTextField(
                                 _passwordController,
                                 '********',
@@ -440,62 +458,6 @@ class _VendorAuthScreenState extends State<VendorAuthScreen> {
                                 Field.password,
                                 obscure,
                               ),
-
-                              if (!isLogin) ...[
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 8.0),
-                                  child: SelectState(
-                                    onCountryChanged: (value) {
-                                      setState(() {
-                                        _countryController.text = value;
-                                      });
-                                    },
-                                    onStateChanged: (value) {
-                                      setState(() {
-                                        _stateController.text = value;
-                                      });
-                                    },
-                                    onCityChanged: (value) {
-                                      setState(() {
-                                        _cityController.text = value;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                CheckboxListTile(
-                                  value: isStoreRegistered,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      isStoreRegistered = value!;
-                                    });
-                                  },
-                                  title: const Text(
-                                      'Have you registered your store?'),
-                                  checkboxShape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                )
-                              ],
-
-                              // tax details
-                              if (!isLogin && isStoreRegistered) ...[
-                                kTextField(
-                                  _storeNumberController,
-                                  '90988777880',
-                                  'Store Reg Number',
-                                  Field.storeRegNo,
-                                  false,
-                                ),
-                                const SizedBox(height: 10),
-                                kTextField(
-                                  _taxNumberController,
-                                  '90988777880',
-                                  'TIN Number',
-                                  Field.taxNumber,
-                                  false,
-                                ),
-                              ],
-
                               SizedBox(height: isLogin ? 30 : 10),
                               Directionality(
                                 textDirection: TextDirection.rtl,
@@ -572,7 +534,7 @@ class _VendorAuthScreenState extends State<VendorAuthScreen> {
                                     child: Text(
                                       isLogin
                                           ? 'New here? Create Account'
-                                          : 'Already a vendor? Sign in',
+                                          : 'Already a user? Sign in',
                                       style: const TextStyle(
                                         color: accentColor,
                                         fontWeight: FontWeight.w600,
