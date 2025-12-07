@@ -1,15 +1,36 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:goturey_marketplace/models/product.dart';
+
+class PurchasedItem {
+  final Product product;
+  final int quantity;
+  final String variantName;
+
+  PurchasedItem({
+    required this.product,
+    required this.quantity,
+    required this.variantName,
+  });
+
+  factory PurchasedItem.fromMap(Map<String, dynamic> map) {
+    var productData = map['product'];
+    if (productData is List) {
+      productData = productData.isNotEmpty ? productData.first : {};
+    }
+
+    return PurchasedItem(
+      product: Product.fromMap(productData as Map<String, dynamic>),
+      quantity: map['quantity'] as int,
+      variantName: map['variantName'] as String,
+    );
+  }
+}
 
 class CheckedOutItem {
   final String orderId;
   final String vendorId;
   final String customerId;
-  final String prodId;
-  final String prodName;
-  final String prodImg;
-  final double prodPrice;
-  final int prodQuantity;
-  final String prodSize;
+  final List<PurchasedItem> products; // Renamed from 'items'
   final DateTime date;
   final bool isDelivered;
   final bool isApproved;
@@ -18,30 +39,22 @@ class CheckedOutItem {
     required this.orderId,
     required this.vendorId,
     required this.customerId,
-    required this.prodId,
-    required this.prodName,
-    required this.prodImg,
-    required this.prodPrice,
-    required this.prodQuantity,
-    required this.prodSize,
+    required this.products, // Renamed from 'items'
     required this.date,
     required this.isDelivered,
     required this.isApproved,
   });
 
-  CheckedOutItem.fromJson(QueryDocumentSnapshot item)
+  CheckedOutItem.fromJson(QueryDocumentSnapshot doc)
       : this(
-          orderId: item['orderId'],
-          vendorId: item['vendorId'],
-          customerId: item['customerId'],
-          prodId: item['prodId'],
-          prodName: item['prodName'],
-          prodImg: item['prodImg'],
-          prodPrice: double.parse(item['prodPrice'].toString()),
-          prodQuantity: int.parse(item['prodQuantity'].toString()),
-          prodSize: item['prodSize'],
-          date: item['date'].toDate(),
-          isDelivered: item['isDelivered'],
-          isApproved: item['isApproved'],
+          orderId: doc['orderId'],
+          vendorId: doc['vendorId'],
+          customerId: doc['customerId'],
+          products: (doc['products'] as List) // Renamed from 'items'
+              .map((item) => PurchasedItem.fromMap(item as Map<String, dynamic>))
+              .toList(),
+          date: doc['date'].toDate(),
+          isDelivered: doc['isDelivered'],
+          isApproved: doc['isApproved'],
         );
 }

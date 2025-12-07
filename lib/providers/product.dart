@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../services/cloudinary_service.dart'; // Import CloudinaryService
+import 'package:uuid/uuid.dart'; // Import uuid package
 
 class ProductData extends ChangeNotifier {
   bool _isProductAttributesSubmitted = false;
   bool _isProductShippingInfoSubmitted = false;
   bool _isProductGeneralInfoSubmitted = false;
+
+  final Uuid _uuid = const Uuid(); // Initialize Uuid
 
   // updateProductAttributesState
   void updateProductAttributeState() {
@@ -51,22 +55,66 @@ class ProductData extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Helper method to upload images and process variants
+  Future<void> _processImagesAndVariants({
+    required List<XFile> featureImages,
+    required List<Map<String, dynamic>> variants,
+  }) async {
+    // Upload feature images
+    List<Map<String, dynamic>> uploadedFeatureImagesData = [];
+    for (XFile imageFile in featureImages) {
+      String? imageUrl = await CloudinaryService.uploadImage(imageFile);
+      if (imageUrl != null) {
+        uploadedFeatureImagesData.add({'url': imageUrl, 'altText': ''}); // Store as map
+      }
+    }
+    productData['featureImages'] = uploadedFeatureImagesData;
+
+    // Process variants and upload variant images
+    List<Map<String, dynamic>> processedVariants = [];
+    for (Map<String, dynamic> variant in variants) {
+      XFile? variantImageFile = variant['image'] as XFile?;
+      String? variantImageUrl;
+      if (variantImageFile != null) {
+        variantImageUrl = await CloudinaryService.uploadImage(variantImageFile);
+      }
+
+      processedVariants.add({
+        'name': variant['name'],
+        'stock': variant['stock'],
+        'type': variant['type'],
+        'priceAdult': variant['priceAdult'],
+        'priceChild': variant['priceChild'],
+        'url': variantImageUrl != null ? [variantImageUrl] : [], // Store the uploaded URL as a list
+      });
+    }
+    productData['variants'] = processedVariants;
+  }
+
   // update product general data
-  updateProductGeneralData({
+  Future<void> updateProductGeneralData({
     String? productName,
-    double? price,
-    int? quantity,
     String? category,
     String? description,
-    DateTime? scheduleDate,
-    List<XFile?>? productImages,
-  }) {
-    productData['productName'] = productName;
-    productData['price'] = price;
-    productData['quantity'] = quantity;
+    List<XFile>? featureImages, // Changed to List<XFile>
+    List<Map<String, dynamic>>? variants, // Changed to List<Map<String, dynamic>>
+    String? vendorId,
+  }) async {
+    // Generate a unique ID for the product
+    final String productId = _uuid.v4();
+    productData['productId'] = productId;
+
+    productData['name'] = productName;
     productData['category'] = category;
     productData['description'] = description;
-    productData['scheduleDate'] = scheduleDate;
+    productData['vendorId'] = vendorId;
+
+    if (featureImages != null && variants != null) {
+      await _processImagesAndVariants(
+        featureImages: featureImages,
+        variants: variants,
+      );
+    }
 
     notifyListeners();
   }

@@ -63,7 +63,7 @@ class _VendorProductDetailsScreenState extends State<VendorProductDetailsScreen>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
-                '\$${widget.product.price.toStringAsFixed(2)}',
+                '${widget.product.name}',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: Colors.green.shade700,
                       fontWeight: FontWeight.bold,
@@ -116,7 +116,7 @@ class _VendorProductDetailsScreenState extends State<VendorProductDetailsScreen>
                           bottomLeft: Radius.circular(12),
                         ),
                         child: Image.network(
-                          variant.imgUrls.isNotEmpty ? variant.imgUrls.first : 'assets/images/placeholder-img.jpg',
+                          variant.url.isNotEmpty ? variant.url.first : 'assets/images/placeholder-img.jpg',
                           width: screenWidth * 0.25,
                           height: screenWidth * 0.25,
                           fit: BoxFit.cover,
@@ -136,15 +136,15 @@ class _VendorProductDetailsScreenState extends State<VendorProductDetailsScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Color: ${variant.color}',
+                              'Color: ${variant.name}',
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             Text(
-                              'Size: ${variant.size}',
+                              'Size: ${variant.price_adult}',
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                             Text(
-                              'Quantity: ${variant.quantity}',
+                              'Quantity: ${variant.name}',
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],
@@ -153,7 +153,7 @@ class _VendorProductDetailsScreenState extends State<VendorProductDetailsScreen>
                       Padding(
                         padding: const EdgeInsets.only(right: 12.0),
                         child: Text(
-                          '\$${variant.price.toStringAsFixed(2)}',
+                          '\$${variant.price_adult.toStringAsFixed(2)}',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),

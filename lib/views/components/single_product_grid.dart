@@ -17,8 +17,8 @@ class SingleProductGridItem extends StatelessWidget {
   Widget build(BuildContext context) {
     // Determine the image URL. Use the first variant image, or the first feature image, or a placeholder.
     String imageUrl = '';
-    if (product.variants.isNotEmpty && product.variants.first.imgUrls.isNotEmpty) {
-      imageUrl = product.variants.first.imgUrls.first;
+    if (product.variants.isNotEmpty && product.variants.first.url.isNotEmpty) {
+      imageUrl = product.variants.first.url.first;
     } else if (product.featureImages.isNotEmpty) {
       imageUrl = product.featureImages.first.url;
     }
@@ -26,7 +26,7 @@ class SingleProductGridItem extends StatelessWidget {
     // Determine the price. Use the first variant's price if available.
     String priceString = '';
     if (product.variants.isNotEmpty) {
-      priceString = '\${product.variants.first.price.toStringAsFixed(2)}';
+      priceString = '\${product.variants.first.price_adult.toStringAsFixed(2)}';
     }
 
     return Stack(

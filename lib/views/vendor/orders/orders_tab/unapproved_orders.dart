@@ -273,7 +273,7 @@ class _UnApprovedOrdersState extends State<UnApprovedOrders> {
 
           checkedOutList = snapshot.data!.docs.length;
           for (var doc in snapshot.data!.docs) {
-            totalAmount += doc['prodPrice'] * doc['prodQuantity'];
+            totalAmount += doc['totalAmount'] as double;
           }
 
           return Container(

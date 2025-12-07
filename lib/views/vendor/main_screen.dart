@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:goturey_marketplace/views/components/generic_bottom_nav.dart';
+import 'package:goturey_marketplace/views/customer/widgets/main_bottom_nav.dart'; // Reusing MainBottomNav
 import 'package:goturey_marketplace/views/vendor/profile/profile.dart';
 import 'package:goturey_marketplace/views/vendor/dashboard.dart';
 import 'package:goturey_marketplace/views/vendor/products/view_all.dart';
@@ -44,27 +44,10 @@ class _VendorMainScreenState extends State<VendorMainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: GenericBottomNav(
+      bottomNavigationBar: MainBottomNav(
         currentIndex: _pageIndex,
+        userType: UserType.vendor,
         onTap: setNewPage,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag),
-            label: 'Orders',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.storefront),
-            label: 'Products',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
       ),
       body: _pages[_pageIndex],
     );

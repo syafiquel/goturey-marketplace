@@ -9,8 +9,7 @@ class TransactionDetailScreen extends StatelessWidget {
   final FirestoreOrder order;
 
   const TransactionDetailScreen({Key? key, required this.order})
-      : super(key: key);
-
+      : super(key: key); // Reconstructed constructor
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,10 +93,10 @@ class TransactionDetailScreen extends StatelessWidget {
                       ),
                     ),
                     child: ListTile(
-                      title: Text(product['name'] ?? ''),
-                      subtitle: Text('Quantity: ${product['quantity'] ?? 0}'),
+                      title: Text(product['prodName'] ?? ''),
+                      subtitle: Text('Quantity: ${product['prodQuantity'] ?? 0}'),
                       trailing: Text(
-                          '${order.currency} ${(product['price'] ?? 0).toStringAsFixed(2)}'),
+                          '${order.currency} ${(product['prodPrice'] ?? 0).toStringAsFixed(2)}'),
                     ),
                   );
                 },
@@ -107,7 +106,7 @@ class TransactionDetailScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: const MainBottomNav(currentIndex: 3),
+      bottomNavigationBar: const MainBottomNav(currentIndex: 3, userType: UserType.customer),
     );
   }
 

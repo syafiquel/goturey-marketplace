@@ -97,10 +97,6 @@ class CartScreenState extends State<CartScreen> {
       body: cartData.isItemEmpty()
           ? _buildEmptyCart()
           : _buildCartContent(cartData),
-      bottomNavigationBar: const MainBottomNav(
-        currentIndex: 3, // Cart tab index
-        isProductDetailsPage: false,
-      ),
       bottomSheet: cartData.isItemEmpty() ? null : _buildCheckoutSection(cartData, orderNow),
     );
   }

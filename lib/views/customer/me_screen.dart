@@ -66,10 +66,6 @@ class MeScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const MainBottomNav(
-        currentIndex: 3, // Transactions tab index
-        isProductDetailsPage: false,
-      ),
     );
   }
 }

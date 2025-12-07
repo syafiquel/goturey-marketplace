@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:goturey_marketplace/views/components/generic_bottom_nav.dart';
+import 'package:goturey_marketplace/views/customer/widgets/main_bottom_nav.dart';
 import 'categories/categories.dart';
-import 'profile/profile.dart';
+import 'me_screen.dart'; // Import MeScreen
 import 'search/search.dart';
 import 'store/store.dart';
 import 'cart/cart.dart';
@@ -21,9 +21,8 @@ class _CustomerMainStateScreen extends State<CustomerMainScreen> {
     CustomerHomeScreen(),
     CategoriesScreen(),
     StoreScreen(),
-    SearchScreen(),
     CartScreen(),
-    ProfileScreen(),
+    MeScreen(),
   ];
 
   void setNewPage(int index) {
@@ -43,41 +42,12 @@ class _CustomerMainStateScreen extends State<CustomerMainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-            bottomNavigationBar: GenericBottomNav(
+            bottomNavigationBar: MainBottomNav(
               currentIndex: _pageIndex,
+              userType: UserType.customer,
               onTap: (index) {
-                if (index == _pageIndex) return;
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                      builder: (context) => CustomerMainScreen(index: index)),
-                );
+                setNewPage(index);
               },
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.home),
-                  label: 'Home',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.category),
-                  label: 'Categories',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.store),
-                  label: 'Store',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.search),
-                  label: 'Search',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.shopping_cart),
-                  label: 'Cart',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.person),
-                  label: 'Profile',
-                ),
-              ],
             ),      body: _pages[_pageIndex],
     );
   }

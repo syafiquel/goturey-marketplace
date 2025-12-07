@@ -23,7 +23,6 @@ class PublishedProducts extends StatefulWidget {
 
 class _PublishedProductsState extends State<PublishedProducts> {
   var userId = FirebaseAuth.instance.currentUser!.uid;
-
   // delete product dialog
   void deleteProductDialog(Product product) {
     areYouSureDialog(
@@ -59,10 +58,16 @@ class _PublishedProductsState extends State<PublishedProducts> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    print('PublishedProducts userId: $userId');
+  }
+
+  @override
   Widget build(BuildContext context) {
     Stream<QuerySnapshot> productsStream = FirebaseCollections.productsCollection
         .where('vendorId', isEqualTo: userId)
-        .where('isPublished', isEqualTo: true)
+        //.where('isPublished', isEqualTo: true)
         .snapshots();
 
     return StreamBuilder<QuerySnapshot>(

@@ -37,9 +37,9 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
     final cart = Provider.of<CartProvider>(context);
 
     final adultProdId =
-        '${widget.product.firestoreId}-${widget.variant.id}-adult';
+        '${widget.product.firestoreId}-${widget.variant.name}-adult';
     final childProdId =
-        '${widget.product.firestoreId}-${widget.variant.id}-child';
+        '${widget.product.firestoreId}-${widget.variant.name}-child';
 
     final adultQty = cart.getProductQuantityOnCart(adultProdId);
     final childQty = cart.getProductQuantityOnCart(childProdId);
@@ -60,14 +60,14 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
         ],
       ),
       bottomNavigationBar:
-          const MainBottomNav(currentIndex: 0, isProductDetailsPage: true),
+          const MainBottomNav(currentIndex: 0, isProductDetailsPage: true, userType: UserType.customer),
       body: Column(
         children: [
           // 🖼 Image Banner
           Stack(
             children: [
               Image.network(
-                widget.variant.imgUrls.isNotEmpty ? widget.variant.imgUrls.first : 'assets/images/placeholder-img.jpg',
+                widget.variant.url.isNotEmpty ? widget.variant.url.first : 'assets/images/placeholder-img.jpg',
                 height: screenHeight * 0.5,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -83,22 +83,21 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
               Positioned(
                 left: 16,
                 bottom: 16,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Icon(Icons.eco, color: Colors.white, size: 32),
-                    Text(
-                      'LANGKAWI\nWILDLIFE PARK',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        height: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(Icons.eco, color: Colors.white, size: 32),
+                                      Text(
+                                        '${widget.variant.name}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          height: 1.2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),              ),
             ],
           ),
 
@@ -109,72 +108,107 @@ class _VariantDetailScreenState extends State<VariantDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${widget.variant.color} - ${widget.variant.size}',
+                  Text('${widget.variant.name}',
                       style: Theme.of(context)
                           .textTheme
                           .headlineSmall
                           ?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text('Price RM ${widget.variant.price.toStringAsFixed(2)}',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 12),
-
-                  // 🧑‍🤝‍🧑 Horizontal Quantity Selectors
+                  // Adult Price and Quantity Selector
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Adult Selector
-                      Column(
-                        children: [
-                          const Text('Adult'),
-                          const SizedBox(height: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(12),
+                      Text('Adult: RM ${widget.variant.price_adult.toStringAsFixed(2)}',
+                          style: Theme.of(context).textTheme.titleMedium),
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                cart.decreaseQuantity(adultProdId);
+                              },
+                              icon: const Icon(Icons.remove),
                             ),
-                            child: Row(
-                              children: [
-                                IconButton(
-                                  onPressed: () {
-                                    cart.decreaseQuantity(adultProdId);
-                                  },
-                                  icon: const Icon(Icons.remove),
-                                ),
-                                Text('$adultQty',
-                                    style:
-                                        Theme.of(context).textTheme.titleLarge),
-                                IconButton(
-                                  onPressed: () {
-                                    if (cart.isItemOnCart(adultProdId)) {
-                                      cart.increaseQuantity(adultProdId);
-                                    } else {
-                                      final cartItem = Cart(
-                                        cartId: adultProdId,
-                                        prodId: adultProdId,
-                                        prodName: '${widget.variant.color} - ${widget.variant.size}',
-                                        price: widget.variant.price,
-                                        prodImg: widget.variant.imgUrls.isNotEmpty ? widget.variant.imgUrls.first : 'assets/images/placeholder-img.jpg',
-                                        quantity: 1,
-                                        vendorId: '',
-                                        prodSize: '',
-                                        date: DateTime.now(),
-                                      );
-                                      cart.addToCart(cartItem);
-                                    }
-                                  },
-                                  icon: const Icon(Icons.add),
-                                ),
-                              ],
+                            Text('$adultQty',
+                                style: Theme.of(context).textTheme.titleLarge),
+                            IconButton(
+                              onPressed: () {
+                                if (cart.isItemOnCart(adultProdId)) {
+                                  cart.increaseQuantity(adultProdId);
+                                } else {
+                                  final cartItem = Cart(
+                                    cartId: adultProdId,
+                                    prodId: adultProdId,
+                                    prodName: '${widget.variant.name} (Adult)',
+                                    price: widget.variant.price_adult,
+                                    prodImg: widget.variant.url.isNotEmpty ? widget.variant.url.first : 'assets/images/placeholder-img.jpg',
+                                    quantity: 1,
+                                    vendorId: '',
+                                    prodSize: '',
+                                    date: DateTime.now(),
+                                  );
+                                  cart.addToCart(cartItem);
+                                }
+                              },
+                              icon: const Icon(Icons.add),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-
-
                     ],
                   ),
-
+                  const SizedBox(height: 12),
+                  // Child Price and Quantity Selector
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Child: RM ${widget.variant.price_child.toStringAsFixed(2)}',
+                          style: Theme.of(context).textTheme.titleMedium),
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                cart.decreaseQuantity(childProdId);
+                              },
+                              icon: const Icon(Icons.remove),
+                            ),
+                            Text('$childQty',
+                                style: Theme.of(context).textTheme.titleLarge),
+                            IconButton(
+                              onPressed: () {
+                                if (cart.isItemOnCart(childProdId)) {
+                                  cart.increaseQuantity(childProdId);
+                                } else {
+                                  final cartItem = Cart(
+                                    cartId: childProdId,
+                                    prodId: childProdId,
+                                    prodName: '${widget.variant.name} (Child)',
+                                    price: widget.variant.price_child,
+                                    prodImg: widget.variant.url.isNotEmpty ? widget.variant.url.first : 'assets/images/placeholder-img.jpg',
+                                    quantity: 1,
+                                    vendorId: '',
+                                    prodSize: '',
+                                    date: DateTime.now(),
+                                  );
+                                  cart.addToCart(cartItem);
+                                }
+                              },
+                              icon: const Icon(Icons.add),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 24),
 
                   // 🛒 Add to Cart Button

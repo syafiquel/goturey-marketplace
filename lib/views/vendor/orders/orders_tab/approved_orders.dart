@@ -80,17 +80,17 @@ class _ApprovedOrdersState extends State<ApprovedOrders> {
   void deleteProductDialog(CheckedOutItem checkOutItem) {
     areYouSureDialog(
       title: 'Delete Product',
-      content: 'Are you sure you want to delete ${checkOutItem.prodName}',
+      content: 'Are you sure you want to delete order ${checkOutItem.orderId}',
       context: context,
       action: deleteProduct,
       isIdInvolved: true,
-      id: checkOutItem.prodId,
+      id: checkOutItem.orderId,
     );
   }
 
   // delete product
-  Future<void> deleteProduct(String prodId) async {
-    await FirebaseCollections.ordersCollection.doc(prodId).delete();
+  Future<void> deleteProduct(String orderId) async {
+    await FirebaseCollections.ordersCollection.doc(orderId).delete();
   }
 
   // deliver all items dialog
@@ -275,7 +275,7 @@ class _ApprovedOrdersState extends State<ApprovedOrders> {
 
           checkedOutList = snapshot.data!.docs.length;
           for (var doc in snapshot.data!.docs) {
-            totalAmount += doc['prodPrice'] * doc['prodQuantity'];
+            totalAmount += doc['totalAmount'] as double;
           }
 
           return Container(

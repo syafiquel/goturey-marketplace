@@ -1,18 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:goturey_marketplace/models/buyer.dart';
 import 'package:goturey_marketplace/models/checked_out_item.dart';
-import 'package:goturey_marketplace/resources/styles_manager.dart';
-
-import '../../constants/color.dart';
-import '../../constants/firebase_refs/collections.dart';
-import '../../models/buyer.dart';
-import '../../resources/assets_manager.dart';
-import '../../resources/font_manager.dart';
-import '../widgets/item_row.dart';
+import 'package:goturey_marketplace/models/product.dart';
 import 'package:intl/intl.dart' as intl;
 
-import '../widgets/k_cached_image.dart';
+import '../../constants/firebase_refs/collections.dart';
+import '../../resources/assets_manager.dart';
+import '../widgets/item_row.dart';
 
 class SingleVendorCheckOutListTile extends StatefulWidget {
   const SingleVendorCheckOutListTile({
@@ -32,27 +28,50 @@ class _SingleVendorCheckOutListTileState
   Buyer buyer = Buyer.initial();
   var _isExpanded = false;
 
-  // fetch customer details
-  Future<void> fetchCustomerDetails() async {
-    await FirebaseCollections.customersCollection
-        .doc(widget.checkoutItem.customerId)
-        .get()
-        .then((DocumentSnapshot data) {
-      setState(() {
-        buyer = Buyer.fromJson(data);
-      });
-    });
-  }
-
   @override
   void initState() {
     super.initState();
-    fetchCustomerDetails();
+    _fetchCustomerDetails();
+  }
+
+  Future<void> _fetchCustomerDetails() async {
+    if (widget.checkoutItem.customerId.isEmpty) return;
+    try {
+      final data = await FirebaseCollections.customersCollection
+          .doc(widget.checkoutItem.customerId)
+          .get();
+      if (mounted) {
+        setState(() {
+          buyer = Buyer.fromJson(data);
+        });
+      }
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  double _calculateTotalPrice() {
+    double total = 0;
+    for (var item in widget.checkoutItem.products) {
+      ProductVariant? variant;
+      try {
+        variant = item.product.variants
+            .firstWhere((v) => v.name == item.variantName);
+      } catch (e) {
+        variant =
+            item.product.variants.isNotEmpty ? item.product.variants.first : null;
+      }
+      final price = variant?.price_adult ?? 0.0;
+      total += price * item.quantity;
+    }
+    return total;
   }
 
   @override
   Widget build(BuildContext context) {
+    final totalPrice = _calculateTotalPrice();
     return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.0),
@@ -68,102 +87,102 @@ class _SingleVendorCheckOutListTileState
       child: Column(
         children: [
           ListTile(
-            contentPadding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 0),
-            leading: CachedNetworkImage(
-              imageUrl: widget.checkoutItem.prodImg,
-              imageBuilder: (context, imageProvider) => CircleAvatar(
-                radius: 30,
-                backgroundImage: imageProvider,
-              ),
-              placeholder: (context, url) => const CircleAvatar(
-                backgroundImage: AssetImage(
-                  AssetManager.placeholderImg,
-                ),
-              ),
-              errorWidget: (context, url, error) => const CircleAvatar(
-                backgroundImage: AssetImage(
-                  AssetManager.placeholderImg,
-                ),
-              ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            leading: const Icon(Icons.receipt_long, size: 40, color: Colors.blueGrey),
+            title: Text(
+              'Order #${widget.checkoutItem.orderId.substring(0, 8)}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            title: Text(widget.checkoutItem.prodName),
-            subtitle: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            subtitle: Text(
+                'By ${buyer.fullname}\nOn ${intl.DateFormat.yMMMd().format(widget.checkoutItem.date)}'),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('\$${widget.checkoutItem.prodPrice}'),
-                Text('Quantity: ${widget.checkoutItem.prodQuantity}'),
+                Text(
+                  '\$${totalPrice.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                Text('${widget.checkoutItem.products.length} items'),
               ],
             ),
-            trailing: IconButton(
-              icon: Icon(
-                _isExpanded
-                    ? Icons.keyboard_arrow_up
-                    : Icons.keyboard_arrow_down,
-                color: Colors.grey.shade600,
-              ),
-              onPressed: () => setState(() {
-                _isExpanded = !_isExpanded;
-              }),
-            ),
+            onTap: () => setState(() {
+              _isExpanded = !_isExpanded;
+            }),
           ),
           if (_isExpanded)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Order Details:',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
+                  const Divider(),
+                  const Text(
+                    'Items:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: widget.checkoutItem.products.length,
+                    itemBuilder: (context, index) {
+                      final orderItem = widget.checkoutItem.products[index];
+                      ProductVariant? variant;
+                      try {
+                        variant = orderItem.product.variants
+                            .firstWhere((v) => v.name == orderItem.variantName);
+                      } catch (e) {
+                        variant = orderItem.product.variants.isNotEmpty
+                            ? orderItem.product.variants.first
+                            : null;
+                      }
+
+                      final price = variant?.price_adult ?? 0.0;
+                      final imageUrl = variant?.url.isNotEmpty == true
+                          ? variant!.url.first
+                          : orderItem.product.featureImages.isNotEmpty
+                              ? orderItem.product.featureImages.first.url
+                              : '';
+
+                      return ListTile(
+                        leading: CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Image.asset(
+                            AssetManager.placeholderImg,
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          ),
+                          errorWidget: (context, url, error) => Image.asset(
+                            AssetManager.placeholderImg,
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          ),
                         ),
+                        title: Text(orderItem.product.name),
+                        subtitle: Text(
+                            '${orderItem.variantName} (x${orderItem.quantity})'),
+                        trailing:
+                            Text('\$${(price * orderItem.quantity).toStringAsFixed(2)}'),
+                      );
+                    },
                   ),
-                  const SizedBox(height: 8),
-                  ItemRow(
-                    value: widget.checkoutItem.prodPrice.toStringAsFixed(2),
-                    title: 'Product Price: ',
-                  ),
-                  ItemRow(
-                    value: widget.checkoutItem.isDelivered ? 'Yes' : 'No',
-                    title: 'Delivered: ',
-                  ),
-                  ItemRow(
-                    value: widget.checkoutItem.prodSize,
-                    title: 'Selected Size: ',
-                  ),
-                  ItemRow(
-                    value: widget.checkoutItem.prodQuantity.toString(),
-                    title: 'Product Quantity: ',
-                  ),
-                  ItemRow(
-                    value:
-                        intl.DateFormat.yMMMEd().format(widget.checkoutItem.date),
-                    title: 'Order Date: ',
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
+                  const Divider(),
+                  const Text(
                     'Customer Details:',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 8),
-                  ItemRow(
-                    value: buyer.fullname,
-                    title: 'Name: ',
-                  ),
-                  ItemRow(
-                    value: buyer.email,
-                    title: 'Email: ',
-                  ),
-                  ItemRow(
-                    value: buyer.address,
-                    title: 'Address: ',
-                  ),
-                  ItemRow(
-                    value: buyer.phone,
-                    title: 'Phone: ',
-                  ),
+                  ItemRow(value: buyer.fullname, title: 'Name: '),
+                  ItemRow(value: buyer.email, title: 'Email: '),
+                  ItemRow(value: buyer.address, title: 'Address: '),
+                  ItemRow(value: buyer.phone, title: 'Phone: '),
                 ],
               ),
             ),

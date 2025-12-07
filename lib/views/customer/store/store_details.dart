@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:goturey_marketplace/views/customer/main_screen.dart';
+import 'package:goturey_marketplace/views/customer/widgets/main_bottom_nav.dart';
 import '../../../constants/color.dart';
 import '../../../helpers/word_reverse.dart';
 import '../../../models/product.dart';
@@ -29,8 +31,8 @@ class _StoreDetailsScreenState extends State<StoreDetailsScreen> {
 
     Stream<QuerySnapshot> productsStream = FirebaseFirestore.instance
         .collection('products')
-        .orderBy('uploadDate', descending: true)
-        .where('isApproved', isEqualTo: true)
+        //.orderBy('uploadDate', descending: true)
+        //.where('isApproved', isEqualTo: true)
         .where('vendorId', isEqualTo: widget.vendor.storeId)
         .snapshots();
 
@@ -110,6 +112,8 @@ class _StoreDetailsScreenState extends State<StoreDetailsScreen> {
                       AsyncSnapshot<QuerySnapshot> snapshot,
                     ) {
                       if (snapshot.hasError) {
+                        // For debugging: print the error to the console
+                        print('Error loading products: ${snapshot.error}');
                         return Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -122,7 +126,12 @@ class _StoreDetailsScreenState extends State<StoreDetailsScreen> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              const Text('An error occurred!'),
+                              // Display a user-friendly message, and optionally the error details
+                              Text(
+                                'Failed to load products. Please try again later.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ],
                           ),
                         );
@@ -196,6 +205,18 @@ class _StoreDetailsScreenState extends State<StoreDetailsScreen> {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: MainBottomNav(
+        currentIndex: 0, // Default to home
+        userType: UserType.customer,
+        onTap: (index) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CustomerMainScreen(index: index),
+            ),
+          );
+        },
       ),
     );
   }

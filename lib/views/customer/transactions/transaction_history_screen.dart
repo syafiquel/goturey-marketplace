@@ -54,6 +54,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       bottomNavigationBar: const MainBottomNav(
         currentIndex: 3, // Transactions tab index
         isProductDetailsPage: false,
+        userType: UserType.customer,
       ),
     );
   }
@@ -188,7 +189,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       ),
                       const SizedBox(height: 4.0),
                       Text(
-                        '${order.products[0]['name']} (x${order.products[0]['quantity']})${order.products.length > 1 ? '...' : ''}',
+                        '${order.products[0]['prodName']} (x${order.products[0]['prodQuantity']})${order.products.length > 1 ? '...' : ''}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 8.0),

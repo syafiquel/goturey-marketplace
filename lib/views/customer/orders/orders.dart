@@ -118,6 +118,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       'customerId': buyer.customerId,
       'customerEmail': buyer.email,
       'customerName': buyer.fullname,
+      'customerPhone': buyer.phone,
       'products': allProducts,
       'totalAmount': orderData.getTotal,
       'currency': 'MYR',
@@ -126,9 +127,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
       'paymentStatus': 'pending', // Pre-authorized state
       'isDelivered': false,
       'isApproved': false, // Will be set to true after payment confirmation
-      'chipInPurchaseId': null, // Will be updated by callback
+      'vendorId': allProducts.isNotEmpty ? allProducts[0]['vendorId'] : null,
       'createdAt': Timestamp.now(),
       'updatedAt': Timestamp.now(),
+      
     });
 
     return docRef.id;
@@ -191,29 +193,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
       // 2. Create pre-authorized order in Firebase
       final orderId = await createPreAuthorizedOrder(paymentReference);
 
-      // 3. Prepare products payload for Chip In
-      final productsPayload = orderData.orders.expand((order) => order.products).map((item) {
-        return {
-          'name': item.prodName,
-          'price': (item.price * 100).toInt(), // Price in cents
-          'quantity': item.quantity
-        };
-      }).toList();
+      // 3. Prepare products payload for SenangPay
+      final List<String> productDetailsList = orderData.orders
+          .expand((order) => order.products)
+          .map((item) => '${item.prodName} x ${item.quantity}')
+          .toList();
+      final String productDetail = productDetailsList.join(', ');
 
       // 4. Call PHP backend to create Chip In purchase
-      final backendUrl = Uri.parse('https://api.goturey.com/create_payment.php');
+      final backendUrl = Uri.parse('https://api.goturey.com/senangpay_payment.php');
       
       final response = await http.post(
         backendUrl,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'amount': (orderData.getTotal * 100).toInt(), // Total amount in cents
-          'email': buyer.email,
-          'fullName': buyer.fullname,
-          'products': productsPayload,
-          'customerId': buyer.customerId,
-          'paymentReference': orderId, // Include payment reference
-        }),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'amount=${(orderData.getTotal).toInt()}&email=${buyer.email}&name=${buyer.fullname}&phone=${buyer.phone}&detail=${Uri.encodeComponent(productDetail)}&order_id=${orderId}',
       );
 
       Navigator.of(context).pop(); // Close loading indicator
@@ -296,9 +289,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 children: [
                   Text('Order ID: $orderId', 
                     style: const TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text('Reference: $paymentReference',
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                  // const SizedBox(height: 4),
+                  // Text('Reference: $paymentReference',
+                  //   style: const TextStyle(fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -384,6 +377,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       bottomNavigationBar: const MainBottomNav(
         currentIndex: 3,
         isProductDetailsPage: false,
+        userType: UserType.customer,
       ),
       bottomSheet: orderData.orders.isNotEmpty
           ? _buildCheckoutSection(orderData, orderNow)
