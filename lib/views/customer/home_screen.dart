@@ -25,7 +25,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Timer? _bannerTimer;
   int _currentBannerPage = 0;
 
-  final categories = ['Watersports', 'Ferry', 'Island Hopping', 'Packages', 'Snorkeling', 'Diving', 'Jetski', 'Banana Boat'];
+  final categories = ['Hotels', 'Ferry', 'Ro-Ro', 'Activities', 'Packages', 'Car Parking', 'Car Rental'];
   final catIcons = [
     Icons.pool,
     Icons.directions_boat,
@@ -37,7 +37,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     Icons.surfing,
   ];
   final catColors = [
-    Colors.blue,
+    Colors.'Hotels', 'Ferry', 'Ro-Ro', 'Activities', 'Packaconst Color(0xFFef2b7c)ges', 'Car Parking', 'Car Rental',
     Colors.purple,
     Colors.orange,
     Colors.green,
@@ -46,7 +46,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     Colors.pink,
     Colors.amber,
   ];
-  final catTitles = ['Watersports', 'Ferry', 'Island Hopping', 'Packages', 'Snorkeling', 'Diving', 'Jetski', 'Banana Boat'];
+  final catTitles = ['Hotels', 'Ferry', 'Ro-Ro', 'Activities', 'Packages', 'Car Parking', 'Car Rental'];
 
   @override
   void initState() {
