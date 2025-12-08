@@ -36,15 +36,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     Icons.two_wheeler,
     Icons.surfing,
   ];
-  final catColors = [
-    Colors.'Hotels', 'Ferry', 'Ro-Ro', 'Activities', 'Packaconst Color(0xFFef2b7c)ges', 'Car Parking', 'Car Rental',
-    Colors.purple,
-    Colors.orange,
-    Colors.green,
-    Colors.red,
-    Colors.teal,
-    Colors.pink,
-    Colors.amber,
+  final List<Color> catColors = [
+    const Color(0xFFef2b7c),
+    const Color(0xFF0095a0),
+    const Color(0xFFef2b7c),
+    const Color(0xFF0095a0),
+    const Color(0xFFef2b7c),
+    const Color(0xFF0095a0),
+    const Color(0xFFef2b7c),
   ];
   final catTitles = ['Hotels', 'Ferry', 'Ro-Ro', 'Activities', 'Packages', 'Car Parking', 'Car Rental'];
 
