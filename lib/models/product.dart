@@ -31,6 +31,7 @@ class ProductVariant {
   final double price_adult;
   final double price_child;
   final List<String> url;
+  final double perEntry;
 
   ProductVariant({
     required this.type,
@@ -39,6 +40,7 @@ class ProductVariant {
     required this.price_adult,
     required this.price_child,
     required this.url,
+    required this.perEntry,
   });
 
   factory ProductVariant.fromJson(Map<String, dynamic> json) {
@@ -55,6 +57,7 @@ class ProductVariant {
       name: json['name'] ?? '',
       price_adult: (json['priceAdult'] as num?)?.toDouble() ?? 0.0,
       price_child: (json['priceChild'] as num?)?.toDouble() ?? 0.0,
+      perEntry: (json['perEntry'] as num?)?.toDouble() ?? 0.0,
       url: imageUrls,
     );
   }
@@ -66,6 +69,7 @@ class ProductVariant {
       'name': name,
       'price_adult': price_adult,
       'price_child': price_child,
+      'perEntry': perEntry,
       'url': url,
     };
   }

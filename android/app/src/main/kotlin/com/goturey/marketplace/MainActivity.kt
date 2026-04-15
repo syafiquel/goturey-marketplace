@@ -1,4 +1,4 @@
-package com.example.goturey_marketplace
+package com.goturey.marketplace
 
 import io.flutter.embedding.android.FlutterActivity
 

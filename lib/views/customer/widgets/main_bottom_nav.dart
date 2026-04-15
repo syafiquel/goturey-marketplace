@@ -20,26 +20,23 @@ class MainBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     List<BottomNavigationBarItem> customerItems = [
       const BottomNavigationBarItem(
-        icon: Icon(Icons.home),
+        icon: Text('🏠', style: TextStyle(fontSize: 24)),
         label: 'Home',
       ),
       const BottomNavigationBarItem(
-        icon: Icon(Icons.category),
+        icon: Text('📑', style: TextStyle(fontSize: 24)),
         label: 'Categories',
       ),
-      BottomNavigationBarItem(
-        icon: Transform.scale(
-          scale: 1.5, // Enlarge the icon
-          child: const Icon(Icons.store),
-        ),
+      const BottomNavigationBarItem(
+        icon: Text('🏪', style: TextStyle(fontSize: 24)),
         label: 'Store',
       ),
       const BottomNavigationBarItem(
-        icon: Icon(Icons.shopping_cart),
+        icon: Text('🛒', style: TextStyle(fontSize: 24)),
         label: 'Cart',
       ),
       const BottomNavigationBarItem(
-        icon: Icon(Icons.person),
+        icon: Text('👤', style: TextStyle(fontSize: 24)),
         label: 'Profile',
       ),
     ];
@@ -66,7 +63,11 @@ class MainBottomNav extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: currentIndex,
       items: userType == UserType.customer ? customerItems : vendorItems,
-      type: BottomNavigationBarType.fixed, // Ensures all items are visible
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: const Color(0xFFef2b7c),
+      unselectedItemColor: Colors.blueGrey,
+      selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
       onTap: onTap,
     );
   }

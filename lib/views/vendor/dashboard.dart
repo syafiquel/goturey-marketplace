@@ -14,7 +14,9 @@ import '../../models/app_data.dart';
 import 'main_screen.dart';
 
 class VendorDashboard extends StatefulWidget {
-  const VendorDashboard({Key? key}) : super(key: key);
+  const VendorDashboard({Key? key, this.storeName}) : super(key: key);
+  
+  final String? storeName;
 
   @override
   State<VendorDashboard> createState() => _VendorDashboardState();
@@ -27,6 +29,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
   var orders = 0;
   var availableFunds = 0.0;
   var products = 0;
+  String? _storeName;
 
   Future<void> fetchData() async {
     // init because of refresh indicator
@@ -39,6 +42,10 @@ class _VendorDashboardState extends State<VendorDashboard> {
 
     // Fetch store details
     store = await FirebaseFirestore.instance.collection('vendors').doc(vendorId).get();
+    if (store!.exists) {
+      final storeData = store!.data() as Map<String, dynamic>;
+      _storeName = storeData['storeName'] ?? widget.storeName ?? 'Store';
+    }
     setState(() {
       _isStoreLoading = false;
     });
@@ -82,30 +89,35 @@ class _VendorDashboardState extends State<VendorDashboard> {
   @override
   void initState() {
     super.initState();
+    _storeName = widget.storeName;
     fetchData();
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 600;
+    final crossAxisCount = isDesktop ? 3 : 2;
+    
     List<AppData> data = [
       AppData(
         title: 'All Orders',
         number: orders,
-        color: dashBlue,
+        color: const Color(0xFF0095a0),
         icon: Icons.shopping_cart_checkout,
         index: 1,
       ),
       AppData(
         title: 'Available Funds',
         number: availableFunds,
-        color: dashGrey,
+        color: const Color(0xFFef2b7c),
         icon: Icons.monetization_on,
         index: 3,
       ),
       AppData(
         title: 'Products',
         number: products,
-        color: dashRed,
+        color: const Color(0xFF0095a0),
         icon: Icons.shopping_bag,
         index: 2,
       ),
@@ -135,11 +147,12 @@ class _VendorDashboardState extends State<VendorDashboard> {
                   expandedTitleScale: 1.4,
                   titlePadding:
                       const EdgeInsetsDirectional.only(start: 20, bottom: 16, top: 16),
-                  title: _isStoreLoading
-                      ? const Text('Loading...',
-                          style: TextStyle(fontWeight: FontWeight.w700))
-                      : Text('Hello ${store!['storeName']} 👋',
-                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                  title: Text(
+                    _isStoreLoading 
+                        ? 'Loading...' 
+                        : 'Hello, ${_storeName ?? 'Store'}! 👋',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.only(
@@ -149,49 +162,139 @@ class _VendorDashboardState extends State<VendorDashboard> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                                                            const SizedBox(height: AppSize.s10),
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height / 6.5,
-                        child: ListView.builder(
-                          itemCount: data.length,
-                          padding: EdgeInsets.zero,
-                          shrinkWrap: true,
-                          scrollDirection: Axis.horizontal,
-                          itemBuilder: (context, index) {
-                            var item = data[index];
-
-                            return BuildDashboardContainer(
-                              title: item.title,
-                              value: item.index == 3
-                                  ? '\$${item.number}'
-                                  : item.number.toString(),
-                              color: item.color,
-                              icon: item.icon,
-                              index: item.index,
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      VendorMainScreen(index: item.index),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Your store analysis',
-                        style: getMediumStyle(color: Colors.black),
-                      ),
-                      const SizedBox(height: 10),
-                      VendorDataGraph(data: data)
-                    ],
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                  child: Text(
+                    'Dashboard Overview',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                sliver: SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: isDesktop ? 1.3 : 1.1,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final item = data[index];
+                      return InkWell(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                VendorMainScreen(index: item.index, storeName: _storeName),
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Container(color: Colors.white.withOpacity(0.7)),
+                              BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                child: Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Colors.white.withOpacity(0.9),
+                                        Colors.white.withOpacity(0.6),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: item.color.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Icon(
+                                          item.icon,
+                                          color: item.color,
+                                          size: isDesktop ? 32 : 28,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Text(
+                                        item.title,
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: Colors.grey.shade700,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        item.index == 3
+                                            ? '\$${item.number.toStringAsFixed(2)}'
+                                            : item.number.toString(),
+                                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: item.color,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: data.length,
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                  child: Text(
+                    'Store Analytics',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: VendorDataGraph(data: data),
+                    ),
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 20),
               ),
             ],
           ),

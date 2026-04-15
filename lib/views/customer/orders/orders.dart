@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:goturey_marketplace/constants/firebase_refs/collections.dart';
 import 'package:goturey_marketplace/views/widgets/kcool_alert.dart';
 import 'package:goturey_marketplace/views/customer/widgets/main_bottom_nav.dart';
+import 'package:goturey_marketplace/views/customer/widgets/responsive_layout_wrapper.dart';
 import 'package:goturey_marketplace/views/widgets/main_app_bar.dart';
 import '../../../constants/enums/status.dart';
 import '../../../providers/order.dart';
@@ -359,47 +360,147 @@ class _OrdersScreenState extends State<OrdersScreen> {
       await handleChipInPayment();
     }
 
-    return Scaffold(
-      appBar: MainAppBar(
-        title: 'Your Orders',
-        actions: [
-          if (orderData.orders.isNotEmpty)
-            IconButton(
-              onPressed: removeAllOrderItemsDialog,
-              icon: const Icon(Icons.delete_sweep_outlined, color: Colors.grey),
-            ),
-        ],
-      ),
-      backgroundColor: Colors.grey.shade50,
-      body: orderData.orders.isEmpty
-          ? _buildEmptyOrders()
-          : _buildOrdersList(orderData),
-      bottomNavigationBar: const MainBottomNav(
-        currentIndex: 3,
-        isProductDetailsPage: false,
-        userType: UserType.customer,
+    return ResponsiveLayoutWrapper(
+      currentIndex: 3,
+      child: Scaffold(
+        appBar: MainAppBar(
+          title: 'Your Orders',
+          actions: [
+            if (orderData.orders.isNotEmpty)
+              IconButton(
+                onPressed: removeAllOrderItemsDialog,
+                icon: const Icon(Icons.delete_sweep_outlined, color: Color(0xFFef2b7c)),
+              ),
+          ],
+        ),
+        backgroundColor: const Color(0xFFF8F5FF),
+        body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFEFE6FF), Color(0xFFF8F5FF)],
+          ),
+        ),
+        padding: const EdgeInsets.only(bottom: 100),
+        child: orderData.orders.isEmpty
+            ? _buildEmptyOrders()
+            : Column(
+                children: [
+                  const SizedBox(height: 20),
+                  _buildSummaryCard(orderData),
+                  const SizedBox(height: 12),
+                  Expanded(child: _buildOrdersList(orderData)),
+                ],
+              ),
       ),
       bottomSheet: orderData.orders.isNotEmpty
           ? _buildCheckoutSection(orderData, orderNow)
           : null,
+      ),
     );
   }
 
   // Widget for displaying the list of orders
   Widget _buildOrdersList(OrderProvider orderData) {
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 120.0),
-      itemCount: orderData.orders.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final order = orderData.orders[index];
-        return SingleOrderItem(
-          id: order.id,
-          totalAmount: order.totalAmount,
-          date: order.orderDate,
-          orders: order,
-        );
-      },
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
+    
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: isDesktop ? 1000 : double.infinity,
+        ),
+        child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 120.0),
+          itemCount: orderData.orders.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final order = orderData.orders[index];
+            return SingleOrderItem(
+              id: order.id,
+              totalAmount: order.totalAmount,
+              date: order.orderDate,
+              orders: order,
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(OrderProvider orderData) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: isDesktop ? 1000 : double.infinity,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Total Price',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'RM ${orderData.getTotal.toStringAsFixed(2)}',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: const Color(0xFFef2b7c),
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0095a0).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF0095a0).withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.shopping_bag_outlined, size: 16, color: Color(0xFF0095a0)),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${orderData.orders.length} ${orderData.orders.length > 1 ? "items" : "item"}',
+                      style: const TextStyle(
+                        color: Color(0xFF0095a0),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -448,7 +549,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
+                        backgroundColor: const Color(0xFFef2b7c),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
                         shape: RoundedRectangleBorder(
@@ -475,106 +576,116 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   // Widget for the checkout section
   Widget _buildCheckoutSection(OrderProvider orderData, VoidCallback orderNow) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
+    
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: isDesktop ? 1000 : double.infinity,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade300,
-            blurRadius: 8.0,
-            offset: const Offset(0, -2),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.shade300,
+                blurRadius: 8.0,
+                offset: const Offset(0, -2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Total Price',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w500,
-                            ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Total Price',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'RM ${orderData.getTotal.toStringAsFixed(2)}',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: const Color(0xFFef2b7c),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'RM ${orderData.getTotal.toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: Colors.orange.shade600,
-                              fontWeight: FontWeight.w700,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0095a0).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFF0095a0).withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.shopping_bag_outlined, size: 16, color: Color(0xFF0095a0)),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${orderData.orders.length} ${orderData.orders.length > 1 ? "items" : "item"}',
+                              style: const TextStyle(
+                                color: Color(0xFF0095a0),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
                             ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.blueAccent.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.shopping_bag_outlined, size: 16, color: Colors.blueAccent),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${orderData.orders.length} ${orderData.orders.length > 1 ? "items" : "item"}',
-                          style: const TextStyle(
-                            color: Colors.blueAccent,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFef2b7c),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
                         ),
-                      ],
+                        elevation: 2,
+                      ),
+                      onPressed: orderNow,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.credit_card, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Proceed to Payment',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    elevation: 2,
-                  ),
-                  onPressed: orderNow,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.credit_card, size: 20),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Proceed to Payment',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

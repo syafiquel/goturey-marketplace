@@ -7,11 +7,13 @@ import '../../constants/color.dart';
 import 'orders/orders.dart';
 
 class VendorMainScreen extends StatefulWidget {
-  const VendorMainScreen({super.key, required this.index});
+  const VendorMainScreen({
+    super.key, 
+    required this.index,
+    this.storeName,
+  });
   final int index;
-
-  // This is a test comment to force recompilation.
-
+  final String? storeName;
 
   @override
   State<VendorMainScreen> createState() => _VendorMainScreenState();
@@ -20,11 +22,11 @@ class VendorMainScreen extends StatefulWidget {
 class _VendorMainScreenState extends State<VendorMainScreen> {
   var _pageIndex = 0;
 
-  final List<Widget> _pages = const [
-    VendorDashboard(),
-    OrdersScreen(),
-    ProductScreen(),
-    ProfileScreen()
+  List<Widget> get _pages => [
+    VendorDashboard(storeName: widget.storeName),
+    const OrdersScreen(),
+    const ProductScreen(),
+    const ProfileScreen()
   ];
 
   void setNewPage(int index) {

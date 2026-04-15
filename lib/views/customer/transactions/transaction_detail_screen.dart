@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:goturey_marketplace/helpers/pdf_generator.dart';
 import 'package:goturey_marketplace/models/firestore_order.dart';
 import 'package:goturey_marketplace/views/customer/widgets/main_bottom_nav.dart';
+import 'package:goturey_marketplace/views/customer/widgets/responsive_layout_wrapper.dart';
 import 'package:goturey_marketplace/views/widgets/main_app_bar.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -12,12 +13,30 @@ class TransactionDetailScreen extends StatelessWidget {
       : super(key: key); // Reconstructed constructor
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: MainAppBar(
-        title: 'Transaction Detail',
-      ),
-      backgroundColor: Colors.grey.shade50,
-      body: Padding(
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
+
+    return ResponsiveLayoutWrapper(
+      currentIndex: 4,
+      child: Scaffold(
+        appBar: const MainAppBar(
+          title: 'Transaction Detail',
+        ),
+        backgroundColor: const Color(0xFFF8F5FF),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFF6F0FF), Color(0xFFF8F5FF)],
+            ),
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isDesktop ? 1000 : double.infinity,
+              ),
+              child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,8 +124,11 @@ class TransactionDetailScreen extends StatelessWidget {
             _buildActionButtons(context),
           ],
         ),
+              ),
+            ),
+          ),
+        ),
       ),
-      bottomNavigationBar: const MainBottomNav(currentIndex: 3, userType: UserType.customer),
     );
   }
 

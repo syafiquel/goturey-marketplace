@@ -1,9 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/color.dart';
+import '../../helpers/icon_mapper.dart';
 import '../../models/category.dart';
-import '../../resources/assets_manager.dart';
 import '../../resources/values_manager.dart';
 
 class SingleCategorySection extends StatelessWidget {
@@ -29,25 +28,27 @@ class SingleCategorySection extends StatelessWidget {
       child: Column(
         children: [
           GestureDetector(
-            onTap: () => setCurrentCategory(index,item.title),
+            onTap: () => setCurrentCategory(index, item.title),
             child: Container(
-              height: 40,
-              width: 50,
+              height: 60,
+              width: 60,
               decoration: BoxDecoration(
                 color: currentCategoryIndex == index ? accentColor : boxBg,
-                borderRadius: BorderRadius.circular(AppSize.s10),
+                borderRadius: BorderRadius.circular(AppSize.s12),
+                border: Border.all(
+                  color: currentCategoryIndex == index
+                      ? accentColor
+                      : Colors.transparent,
+                  width: 1.5,
+                ),
               ),
               child: Center(
-                child: CachedNetworkImage(
-                  imageUrl: item.imgUrl,
-                  placeholder: (context, url) =>
-                      Image.asset(AssetManager.addImage,fit:BoxFit.cover),
-                  errorWidget: (context, url, error) =>
-                      Image.asset(AssetManager.addImage,fit:BoxFit.cover),
-                  width: 50,
+                child: Icon(
+                  iconFromName(item.icon),
                   color: currentCategoryIndex == index
                       ? Colors.white
                       : iconColor,
+                  size: 30,
                 ),
               ),
             ),

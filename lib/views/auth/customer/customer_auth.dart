@@ -101,33 +101,70 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
       textInputAction:
           field == Field.password ? TextInputAction.done : TextInputAction.next,
       autofocus: field == Field.email ? true : false,
+      style: const TextStyle(fontSize: 16),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: accentColor),
+        labelStyle: TextStyle(
+          color: Colors.grey.shade600,
+          fontSize: 14,
+        ),
+        prefixIcon: Icon(
+          field == Field.email
+              ? Icons.email_outlined
+              : field == Field.phone
+                  ? Icons.phone_outlined
+                  : field == Field.password
+                      ? Icons.lock_outlined
+                      : Icons.person_outlined,
+          color: const Color(0xFFef2b7c),
+          size: 20,
+        ),
         suffixIcon: field == Field.password
             ? _passwordController.text.isNotEmpty
                 ? IconButton(
                     onPressed: () => _togglePasswordObscure(),
                     icon: Icon(
-                      obscure ? Icons.visibility : Icons.visibility_off,
-                      color: accentColor,
+                      obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      color: const Color(0xFF0095a0),
+                      size: 20,
                     ),
                   )
                 : const SizedBox.shrink()
             : const SizedBox.shrink(),
         hintText: hint,
+        hintStyle: TextStyle(
+          color: Colors.grey.shade400,
+          fontSize: 14,
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
             width: 2,
-            color: accentColor,
+            color: Color(0xFFef2b7c),
           ),
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            width: 1,
+            color: Colors.grey.shade300,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
             width: 1,
-            color: Colors.grey,
+            color: Colors.red,
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            width: 2,
+            color: Colors.red,
           ),
         ),
       ),
@@ -428,206 +465,340 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
+
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(18.0),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF6F0FF), Color(0xFFF8F5FF)],
+          ),
+        ),
+        child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  !isLogin
-                      ? ProfileImagePicker(selectImage: _selectPhoto)
-                      : Center(
-                          child: CircleAvatar(
-                            backgroundColor: Colors.white,
-                            radius: 60,
-                            child: Image.asset(AssetManager.loginImage),
+              padding: const EdgeInsets.all(24.0),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isDesktop ? 500 : double.infinity,
+                  ),
+                  child: Container(
+                    padding: EdgeInsets.all(isDesktop ? 48.0 : 32.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.shade300,
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Logo/Image
+                        Center(
+                          child: Image.asset(
+                            'assets/icons/goturey@4x.png',
+                            height: isDesktop ? 120 : 100,
+                            fit: BoxFit.contain,
                           ),
                         ),
-                  const SizedBox(height: 20),
-                  Center(
-                    child: Text(
-                      isLogin
-                          ? 'Sign in to your Account'
-                          : 'Signup for a new Account',
-                      style: const TextStyle(
-                        color: accentColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  !isLogin
-                      ? Center(
-                          child: ToggleButtons(
-                            isSelected: [
-                              _accountType == AccountType.customer,
-                              _accountType == AccountType.vendor,
-                            ],
-                            onPressed: (index) {
-                              setState(() {
-                                _accountType = index == 0
-                                    ? AccountType.customer
-                                    : AccountType.vendor;
-                              });
-                            },
-                            borderRadius: BorderRadius.circular(10),
-                            selectedColor: Colors.white,
-                            fillColor: primaryColor,
-                            children: const [
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 12.0),
-                                child: Text('Customer'),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 12.0),
-                                child: Text('Vendor'),
-                              ),
-                            ],
+                        if (!isLogin) ...[
+                          const SizedBox(height: 24),
+                          ProfileImagePicker(selectImage: _selectPhoto),
+                        ],
+                        const SizedBox(height: 32),
+                        Center(
+                          child: Text(
+                            isLogin
+                                ? 'Welcome Back!'
+                                : 'Create Account',
+                            style: TextStyle(
+                              color: Colors.grey.shade800,
+                              fontSize: isDesktop ? 32 : 28,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        )
-                      : const SizedBox.shrink(),
-                  const SizedBox(height: 20),
-                  isLoading
-                      ? const Center(
-                          child: LoadingWidget(
-                            size: 70,
+                        ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: Text(
+                            isLogin
+                                ? 'Sign in to continue shopping'
+                                : 'Join us and start shopping',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
                           ),
-                        )
-                      : Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              kTextField(
-                                _emailController,
-                                'doe@gmail.com',
-                                'Email Address',
-                                Field.email,
-                                false,
-                              ),
-                              const SizedBox(height: 10),
-                              !isLogin
-                                  ? kTextField(
-                                      _fullnameController,
-                                      'John Doe',
-                                      'Fullname',
-                                      Field.fullname,
-                                      false,
-                                    )
-                                  : const SizedBox.shrink(),
-                              SizedBox(height: isLogin ? 0 : 10),
-                              !isLogin
-                                  ? kTextField(
-                                      _phoneController,
-                                      '+234-000-000-000',
-                                      'Phone Number',
-                                      Field.phone,
-                                      false,
-                                    )
-                                  : const SizedBox.shrink(),
-                              SizedBox(height: isLogin ? 0 : 10),
-                              SizedBox(height: isLogin ? 0 : 10),
-                              kTextField(
-                                _passwordController,
-                                '********',
-                                'Password',
-                                Field.password,
-                                obscure,
-                              ),
-                              SizedBox(height: isLogin ? 30 : 10),
-                              Directionality(
-                                textDirection: TextDirection.rtl,
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: primaryColor,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    padding: const EdgeInsets.all(15),
-                                  ),
-                                  icon: Icon(
-                                    isLogin
-                                        ? Icons.person
-                                        : Icons.person_add_alt_1,
-                                    color: Colors.white,
-                                  ),
-                                  onPressed: () => _handleAuth(),
-                                  label: Text(
-                                    isLogin
-                                        ? 'Signin Account'
-                                        : 'Signup Account',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                        ),
+                        const SizedBox(height: 32),
+                        !isLogin
+                            ? Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                              ),
-                              const SizedBox(height: 10),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  padding: const EdgeInsets.all(15),
-                                ),
-                                onPressed: () => _googleAuth(),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Image.asset(
-                                      'assets/images/google.png',
-                                      width: 20,
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _accountType = AccountType.customer;
+                                          });
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 12),
+                                          decoration: BoxDecoration(
+                                            color: _accountType == AccountType.customer
+                                                ? const Color(0xFFef2b7c)
+                                                : Colors.transparent,
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              'Customer',
+                                              style: TextStyle(
+                                                color: _accountType == AccountType.customer
+                                                    ? Colors.white
+                                                    : Colors.grey.shade700,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                    const SizedBox(width: 20),
-                                    Text(
-                                      isLogin
-                                          ? 'Signin with google'
-                                          : 'Signup with google',
-                                      style: const TextStyle(
-                                          color: Colors.grey,
-                                          fontWeight: FontWeight.w600),
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _accountType = AccountType.vendor;
+                                          });
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 12),
+                                          decoration: BoxDecoration(
+                                            color: _accountType == AccountType.vendor
+                                                ? const Color(0xFF0095a0)
+                                                : Colors.transparent,
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              'Vendor',
+                                              style: TextStyle(
+                                                color: _accountType == AccountType.vendor
+                                                    ? Colors.white
+                                                    : Colors.grey.shade700,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                        SizedBox(height: isLogin ? 32 : 24),
+                        isLoading
+                            ? const Center(
+                                child: LoadingWidget(
+                                  size: 70,
+                                ),
+                              )
+                            : Form(
+                                key: _formKey,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    kTextField(
+                                      _emailController,
+                                      'doe@gmail.com',
+                                      'Email Address',
+                                      Field.email,
+                                      false,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    !isLogin
+                                        ? kTextField(
+                                            _fullnameController,
+                                            'John Doe',
+                                            'Fullname',
+                                            Field.fullname,
+                                            false,
+                                          )
+                                        : const SizedBox.shrink(),
+                                    SizedBox(height: isLogin ? 0 : 16),
+                                    !isLogin
+                                        ? kTextField(
+                                            _phoneController,
+                                            '+60-000-000-000',
+                                            'Phone Number',
+                                            Field.phone,
+                                            false,
+                                          )
+                                        : const SizedBox.shrink(),
+                                    SizedBox(height: isLogin ? 0 : 16),
+                                    kTextField(
+                                      _passwordController,
+                                      '********',
+                                      'Password',
+                                      Field.password,
+                                      obscure,
+                                    ),
+                                    SizedBox(height: isLogin ? 24 : 16),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFFef2b7c),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          elevation: 0,
+                                        ),
+                                        onPressed: () => _handleAuth(),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              isLogin ? Icons.login : Icons.person_add,
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Text(
+                                              isLogin ? 'Sign In' : 'Sign Up',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    // Divider
+                                    Row(
+                                      children: [
+                                        Expanded(child: Divider(color: Colors.grey.shade300)),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                                          child: Text(
+                                            'OR',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(child: Divider(color: Colors.grey.shade300)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.grey.shade700,
+                                        side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      onPressed: () => _googleAuth(),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Image.asset(
+                                            'assets/images/google.png',
+                                            width: 20,
+                                            height: 20,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            isLogin
+                                                ? 'Sign in with Google'
+                                                : 'Sign up with Google',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    // Forgot Password (only for login)
+                                    if (isLogin)
+                                      Center(
+                                        child: TextButton(
+                                          onPressed: () => _forgotPassword(),
+                                          child: const Text(
+                                            'Forgot Password?',
+                                            style: TextStyle(
+                                              color: Color(0xFF0095a0),
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    SizedBox(height: isLogin ? 8 : 24),
+                                    // Switch between login/signup
+                                    Center(
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            isLogin
+                                                ? "Don't have an account? "
+                                                : "Already have an account? ",
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => _switchLog(),
+                                            style: TextButton.styleFrom(
+                                              padding: EdgeInsets.zero,
+                                              minimumSize: const Size(0, 0),
+                                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                            ),
+                                            child: Text(
+                                              isLogin ? 'Sign Up' : 'Sign In',
+                                              style: const TextStyle(
+                                                color: Color(0xFFef2b7c),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  TextButton(
-                                    onPressed: () => _forgotPassword(),
-                                    child: const Text(
-                                      'Forgot Password',
-                                      style: TextStyle(
-                                        color: accentColor,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  TextButton(
-                                    onPressed: () => _switchLog(),
-                                    child: Text(
-                                      isLogin
-                                          ? 'New here? Create Account'
-                                          : 'Already a user? Sign in',
-                                      style: const TextStyle(
-                                        color: accentColor,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              )
-                            ],
-                          ),
-                        )
-                ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

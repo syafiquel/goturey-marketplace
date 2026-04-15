@@ -2,9 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:goturey_marketplace/models/firestore_order.dart';
+import 'package:goturey_marketplace/views/auth/customer/customer_auth.dart';
 import 'package:goturey_marketplace/views/customer/main_screen.dart';
 import 'package:goturey_marketplace/views/customer/transactions/transaction_detail_screen.dart';
 import 'package:goturey_marketplace/views/customer/widgets/main_bottom_nav.dart';
+import 'package:goturey_marketplace/views/customer/widgets/responsive_layout_wrapper.dart';
 import 'package:goturey_marketplace/views/widgets/main_app_bar.dart';
 
 import '../../../resources/assets_manager.dart';
@@ -20,41 +22,57 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
 
-    return Scaffold(
-      appBar: MainAppBar(
-        title: 'Transactions History',
+    return ResponsiveLayoutWrapper(
+      currentIndex: 4,
+      child: Scaffold(
+        appBar: const MainAppBar(
+          title: 'Transactions History',
+        ),
+        backgroundColor: const Color(0xFFF8F5FF),
+        body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF6F0FF), Color(0xFFF8F5FF)],
+          ),
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isDesktop ? 1000 : double.infinity,
+            ),
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('orders')
+                  .where('customerId', isEqualTo: uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text('Error: ${snapshot.error}'),
+                  );
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                if (snapshot.data!.docs.isEmpty) {
+                  return _buildEmptyTransactions();
+                }
+
+                return _buildTransactionsList(snapshot.data!.docs);
+              },
+            ),
+          ),
+        ),
       ),
-      backgroundColor: Colors.grey.shade50,
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('orders')
-            .where('customerId', isEqualTo: uid)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Error: ${snapshot.error}'),
-            );
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          if (snapshot.data!.docs.isEmpty) {
-            return _buildEmptyTransactions();
-          }
-
-          return _buildTransactionsList(snapshot.data!.docs);
-        },
-      ),
-      bottomNavigationBar: const MainBottomNav(
-        currentIndex: 3, // Transactions tab index
-        isProductDetailsPage: false,
-        userType: UserType.customer,
       ),
     );
   }
@@ -106,7 +124,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
+                        backgroundColor: const Color(0xFFef2b7c),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
                         shape: RoundedRectangleBorder(
@@ -208,3 +226,72 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     );
   }
 }
+
+  Widget _buildLoginPrompt(BuildContext context) {
+    return Scaffold(
+      appBar: MainAppBar(
+        title: 'Transactions History',
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.account_circle,
+                size: 80,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Please log in to view your transactions',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'You need to be logged in to see your transaction history. Log in or create an account to get started.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const CustomerAuthScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Log In / Sign Up',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }

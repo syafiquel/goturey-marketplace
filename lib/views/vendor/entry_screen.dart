@@ -84,7 +84,10 @@ class _VendorEntryScreenState extends State<VendorEntryScreen> {
 
           if (vendor.isApproved) {
             // account is approved
-            return const VendorMainScreen(index:0);
+            return VendorMainScreen(
+              index: 0,
+              storeName: vendor.storeName,
+            );
           }
 
           return Column(

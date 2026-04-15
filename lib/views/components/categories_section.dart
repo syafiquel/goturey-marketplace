@@ -89,13 +89,18 @@ class _CategorySectionState extends State<CategorySection> {
           }
 
           // hard coding an "All Category" and adding it to the list
+          List<Category> fetchedCategories =
+              snapshot.data!.docs.map((item) => Category.fromJson(item)).toList();
+          fetchedCategories.sort((a, b) => a.order.compareTo(b.order));
+
           List<Category> combinedList = [
             Category(
-              id: 'title',
-              title: '',
-              imgUrl: AssetManager.allNetworkImage,
+              id: 'all',
+              title: 'All Categories',
+              icon: 'apps',
+              order: -1,
             ),
-            ...snapshot.data!.docs.map((item) => Category.fromJson(item))
+            ...fetchedCategories
           ];
 
           // Calculate number of columns based on screen width
@@ -113,11 +118,7 @@ class _CategorySectionState extends State<CategorySection> {
               var item = combinedList[index];
 
               return SingleCategorySection(
-                item: Category(
-                  id: item.id,
-                  title: item.title,
-                  imgUrl: item.imgUrl,
-                ),
+                item: item,
                 index: index,
                 setCurrentCategory: setCurrentIconSection,
                 currentCategoryIndex: currentCategoryIndex,

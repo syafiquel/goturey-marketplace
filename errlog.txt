@@ -1,0 +1,4 @@
+lib/helpers/pdf_generator.dart:48:43: Error: Undefined
+name 'AndroidPathProvider'.
+[   +2 ms] [   +3 ms]       final String? downloadsPath = await
+AndroidPathProvider.downloadsPath;

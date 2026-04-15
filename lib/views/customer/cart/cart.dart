@@ -34,6 +34,8 @@ class CartScreenState extends State<CartScreen> {
   @override
   Widget build(BuildContext context) {
     var cartData = Provider.of<CartProvider>(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
 
     // Remove cart items
     void removeAllCartItems() {
@@ -80,24 +82,40 @@ class CartScreenState extends State<CartScreen> {
               ),
               icon: const Icon(
                 Icons.shopping_cart_checkout,
-                color: Colors.grey,
+                color: Color(0xFF0095a0),
               ),
             ),
             IconButton(
               onPressed: () => removeAllCartItemsDialog(),
               icon: const Icon(
                 Icons.delete_forever,
-                color: Colors.grey,
+                color: Color(0xFFef2b7c),
               ),
             ),
           ],
         ],
       ),
-      backgroundColor: Colors.grey.shade50, // Consistent with product details background
-      body: cartData.isItemEmpty()
-          ? _buildEmptyCart()
-          : _buildCartContent(cartData),
-      bottomSheet: cartData.isItemEmpty() ? null : _buildCheckoutSection(cartData, orderNow),
+      backgroundColor: const Color(0xFFF8F5FF),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF6F0FF), Color(0xFFF8F5FF)],
+          ),
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isDesktop ? 1000 : double.infinity,
+            ),
+            child: cartData.isItemEmpty()
+                ? _buildEmptyCart()
+                : _buildCartContent(cartData),
+          ),
+        ),
+      ),
+      bottomSheet: cartData.isItemEmpty() ? null : _buildCheckoutSection(cartData, orderNow, isDesktop),
     );
   }
 
@@ -149,7 +167,7 @@ class CartScreenState extends State<CartScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
+                        backgroundColor: const Color(0xFFef2b7c),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
                         shape: RoundedRectangleBorder(
@@ -217,109 +235,116 @@ class CartScreenState extends State<CartScreen> {
   }
 
   // Redesigned checkout section following design consistency
-  Widget _buildCheckoutSection(CartProvider cartData, VoidCallback orderNow) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
+  Widget _buildCheckoutSection(CartProvider cartData, VoidCallback orderNow, bool isDesktop) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: isDesktop ? 1000 : double.infinity,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade300,
-            blurRadius: 8.0,
-            offset: const Offset(0, -2),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.shade300,
+                blurRadius: 8.0,
+                offset: const Offset(0, -2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Total price section
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  // Total price section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Total Price',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Total Price',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'RM ${cartData.getCartTotalAmount().toStringAsFixed(2)}',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: const Color(0xFFef2b7c),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'RM ${cartData.getCartTotalAmount().toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w700,
+                      // Cart quantity badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0095a0).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: const Color(0xFF0095a0).withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.shopping_cart,
+                              size: 16,
+                              color: Color(0xFF0095a0),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${cartData.getCartQuantity} items',
+                              style: const TextStyle(
+                                color: Color(0xFF0095a0),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  // Cart quantity badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.blueAccent.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.blueAccent.withOpacity(0.3),
+                  const SizedBox(height: 20),
+                  // Order now button with consistent styling
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFef2b7c),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        elevation: 0,
                       ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.shopping_cart,
-                          size: 16,
-                          color: Colors.blueAccent,
+                      onPressed: orderNow,
+                      child: const Text(
+                        'Order Now',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${cartData.getCartQuantity} items',
-                          style: TextStyle(
-                            color: Colors.blueAccent,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              // Order now button with consistent styling
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    elevation: 0,
-                  ),
-                  onPressed: orderNow,
-                  child: const Text(
-                    'Order Now',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

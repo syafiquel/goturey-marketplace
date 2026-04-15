@@ -93,29 +93,76 @@ class AuthGate extends StatelessWidget {
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return FutureBuilder<DocumentSnapshot>(
-            future: FirebaseFirestore.instance
-                .collection('users')
-                .doc(snapshot.data!.uid)
-                .get(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData && snapshot.data!.exists) {
-                final accountType = snapshot.data!['accountType'];
-                if (accountType == AccountType.customer.toString()) {
-                  return const CustomerMainScreen(index: 0);
-                } else {
-                  return const VendorEntryScreen();
-                }
-              } else {
-                return const CustomerAuthScreen();
-              }
-            },
+      builder: (context, authSnapshot) {
+        // User is not authenticated - allow browsing without login
+        if (!authSnapshot.hasData || authSnapshot.data == null) {
+          return const CustomerMainScreen(
+            index: 0,
+            userName: null, // No user name for guests
           );
-        } else {
-          return const CustomerAuthScreen();
         }
+
+        // User is authenticated, fetch user data
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(authSnapshot.data!.uid)
+              .snapshots(),
+          builder: (context, userSnapshot) {
+            // Still loading user data
+            if (userSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            // Handle errors - allow browsing as guest
+            if (userSnapshot.hasError) {
+              return const CustomerMainScreen(
+                index: 0,
+                userName: null,
+              );
+            }
+
+            // User document doesn't exist - route to customer with auth userName
+            if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+              return CustomerMainScreen(
+                index: 0,
+                userName: authSnapshot.data!.displayName ?? 'User',
+              );
+            }
+
+            // Extract user data
+            final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+            
+            if (userData == null) {
+              // If no data, default to customer screen with auth userName
+              return CustomerMainScreen(
+                index: 0,
+                userName: authSnapshot.data!.displayName ?? 'User',
+              );
+            }
+
+            final accountType = userData['accountType'];
+            final userName = userData['fullName'] ?? 
+                             userData['name'] ?? 
+                             authSnapshot.data!.displayName ?? 
+                             'User';
+
+            // Route based on account type
+            if (accountType == AccountType.vendor.toString()) {
+              return const VendorEntryScreen();
+            } else {
+              // Customer account - show with user name
+              return CustomerMainScreen(
+                index: 0,
+                userName: userName,
+              );
+            }
+          },
+        );
       },
     );
   }
